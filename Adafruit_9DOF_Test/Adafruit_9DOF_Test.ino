@@ -1,8 +1,8 @@
 
-#include <Adafruit_LSM303_U.h>
-#include <Adafruit_L3GD20_U.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_9DOF.h>
+#include "Adafruit_LSM303_U.h"
+#include "Adafruit_L3GD20_U.h"
+#include "Adafruit_Sensor.h"
+#include "Adafruit_9DOF.h"
 #include <Wire.h>
 
 Adafruit_9DOF                 dof   = Adafruit_9DOF();
@@ -61,14 +61,14 @@ void i2c_write(byte address, byte reg, byte value) {
 
 void setInterrupts() {
   
-  // Enable 6D motion detection interrupt  
-  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT2_CFG_A, 0x7f);
+  // Enable OR combination events  
+  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_CFG_A, 0x01);
 
   // Set threshold
-  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT2_THS_A, 0x0f);
+  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_THS_A, 0x02);
 
   // Set duration
-  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT2_DURATION_A, 0x0f);
+  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_DURATION_A, 0x02);
 }
 
 void initSensors()
