@@ -13,32 +13,52 @@ sensors_event_t accelerationEvent;  // roll and pitch
 sensors_event_t magnetometerEvent;  // yaw (heading)
 sensors_vec_t   orientation;
 
+
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   Serial.println("Hello World");
   initSensors();  
+  setInterrupts();
 }
 
 void loop() {
-  // get roll and pitch, yaw calculate and print
+
+}
+
+bool readOrientation() {
   accel.getEvent(&accelerationEvent);
   mag.getEvent(&magnetometerEvent);
-  if (dof.fusionGetOrientation(&accelerationEvent, &magnetometerEvent, &orientation)) {
-    Serial.print("Orientation:");
-    Serial.print(orientation.roll);
-    Serial.print(", ");
-    Serial.print(orientation.pitch);
-    Serial.print(", ");
-    Serial.print(orientation.heading);
-    Serial.print("; Acceleration ");
-    Serial.print(accelerationEvent.acceleration.x);
-    Serial.print(", ");
-    Serial.print(accelerationEvent.acceleration.y);
-    Serial.print(", ");
-    Serial.println(accelerationEvent.acceleration.z);
-  }
-  delay(1000);
+  return dof.fusionGetOrientation(&accelerationEvent, &magnetometerEvent, &orientation);
+}
+
+byte i2c_read(byte address, byte reg) {
+  byte value;
+
+  Wire.beginTransmission(address);
+  Wire.write((uint8_t)reg);
+  Wire.endTransmission();
+  Wire.requestFrom(address, (byte)1);
+  value = Wire.read();
+  Wire.endTransmission();
+  return value;
+}
+
+void i2c_write(byte address, byte reg, byte value) {
+  Wire.beginTransmission(address);
+  Wire.write((uint8_t)reg);
+  Wire.write((uint8_t)value);
+  Wire.endTransmission();
+}
+
+
+
+void setInterrupts() {
+  
+  // Enable 6D motion detection interrupt
+  byte interrupt_mode = 0x7f;
+  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT2_CFG_A, interrupt_mode);
 }
 
 void initSensors()
