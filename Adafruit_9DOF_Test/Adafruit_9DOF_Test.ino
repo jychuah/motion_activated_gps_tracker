@@ -9,7 +9,8 @@ Adafruit_9DOF                 dof   = Adafruit_9DOF();
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(30301);
 Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(30302);
 
-sensors_event_t accelerationEvent;
+sensors_event_t accelerationEvent;  // roll and pitch
+sensors_event_t magnetometerEvent;  // yaw (heading)
 sensors_vec_t   orientation;
 
 void setup() {
@@ -20,8 +21,23 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  // get roll and pitch, calculate and print
+  accel.getEvent(&accelerationEvent);
+  if (dof.accelGetOrientation(&accelerationEvent, &orientation)) {
+    Serial.print("Roll: ");
+    Serial.print(orientation.roll);
+    Serial.print(" Pitch: ");
+    Serial.print(orientation.pitch);
+  }
 
+  // get heading, calculate and print
+  mag.getEvent(&magnetometerEvent);
+  if (dof.magGetOrientation(SENSOR_AXIS_Z, &magnetometerEvent, &orientation)) {
+    Serial.print(" Yaw: ");
+    Serial.print(orientation.heading);
+  }
+  Serial.println("");
+  delay(1000);
 }
 
 void initSensors()
