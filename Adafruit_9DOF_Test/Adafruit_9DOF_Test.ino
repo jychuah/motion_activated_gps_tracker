@@ -21,22 +21,17 @@ void setup() {
 }
 
 void loop() {
-  // get roll and pitch, calculate and print
+  // get roll and pitch, yaw calculate and print
   accel.getEvent(&accelerationEvent);
-  if (dof.accelGetOrientation(&accelerationEvent, &orientation)) {
-    Serial.print("Roll: ");
-    Serial.print(orientation.roll);
-    Serial.print(" Pitch: ");
-    Serial.print(orientation.pitch);
-  }
-
-  // get heading, calculate and print
   mag.getEvent(&magnetometerEvent);
-  if (dof.magGetOrientation(SENSOR_AXIS_Z, &magnetometerEvent, &orientation)) {
-    Serial.print(" Yaw: ");
-    Serial.print(orientation.heading);
+  if (dof.fusionGetOrientation(&accelerationEvent, &magnetometerEvent, &orientation)) {
+    Serial.print("Orientation:");
+    Serial.print(orientation.roll);
+    Serial.print(", ");
+    Serial.print(orientation.pitch);
+    Serial.print(", ");
+    Serial.println(orientation.heading);
   }
-  Serial.println("");
   delay(1000);
 }
 
