@@ -30,7 +30,13 @@ void loop() {
     Serial.print(", ");
     Serial.print(orientation.pitch);
     Serial.print(", ");
-    Serial.println(orientation.heading);
+    Serial.print(orientation.heading);
+    Serial.print("; Acceleration ");
+    Serial.print(accelerationEvent.acceleration.x);
+    Serial.print(", ");
+    Serial.print(accelerationEvent.acceleration.y);
+    Serial.print(", ");
+    Serial.println(accelerationEvent.acceleration.z);
   }
   delay(1000);
 }
