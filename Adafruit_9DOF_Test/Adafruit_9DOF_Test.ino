@@ -9,16 +9,14 @@
 #define LSM303_REGISTER_ACCEL_INT1_CFG_A		0x30
 #define LSM303_REGISTER_ACCEL_INT1_THS_A		0x32
 #define LSM303_REGISTER_ACCEL_INT1_DURATION_A	0x33
-
-int a0val = -100;
-bool lastInterrupt = false;
+#define SENSITIVITY_PEAK_VOLTAGE				2.45
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   Serial.println("Hello World");
-  initSensors();  
-  initInterrupt();
+//  initSensors();  
+//  initInterrupt();
   pinMode(A0, INPUT);
 }
 
@@ -39,18 +37,25 @@ void initInterrupt() {
   sleep_disable();
 }
 
+void loop() {
+	Serial.println(getSensitivity());
+	delay(1000);
+}
+
+uint8_t getSensitivity() {
+	double voltage = 5.0 * (analogRead(A0) / 1023.0);
+	if (voltage > SENSITIVITY_PEAK_VOLTAGE) {
+		voltage = SENSITIVITY_PEAK_VOLTAGE;
+	}
+	return (uint8_t)((voltage / SENSITIVITY_PEAK_VOLTAGE) * 127);
+}
+
 void accelerometerISR() {
 	sleep_disable();
   detachInterrupt(digitalPinToInterrupt(ACCEL_INT1_PIN));
   Serial.println("Accelerometer Interrupt");
 
 }
-
-
-void loop() {
-
-}
-
 void initSensors()
 {
 	Serial.println("Initializing Sensors");
