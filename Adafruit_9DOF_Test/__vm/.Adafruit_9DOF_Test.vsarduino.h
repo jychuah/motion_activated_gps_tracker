@@ -84,11 +84,4 @@ extern "C" void __cxa_pure_virtual() {;}
 #define portInputRegister(P)
 #define portModeRegister(P)
 #include <Adafruit_9DOF_Test.ino>
-#include <Adafruit_9DOF.cpp>
-#include <Adafruit_9DOF.h>
-#include <Adafruit_L3GD20_U.cpp>
-#include <Adafruit_L3GD20_U.h>
-#include <Adafruit_LSM303_U.cpp>
-#include <Adafruit_LSM303_U.h>
-#include <Adafruit_Sensor.h>
 #endif

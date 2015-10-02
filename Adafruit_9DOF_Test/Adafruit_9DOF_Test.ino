@@ -1,20 +1,14 @@
-
-#include "Adafruit_LSM303_U.h"
-#include "Adafruit_L3GD20_U.h"
-#include "Adafruit_Sensor.h"
-#include "Adafruit_9DOF.h"
 #include <Wire.h>
 #include <avr/sleep.h>
 
-#define ACCEL_INT1_PIN 2
+#define ACCEL_INT1_PIN							2
 
-Adafruit_9DOF                 dof   = Adafruit_9DOF();
-Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(30301);
-Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(30302);
-
-sensors_event_t accelerationEvent;  // roll and pitch
-sensors_event_t magnetometerEvent;  // yaw (heading)
-sensors_vec_t   orientation;
+#define LSM303_ADDRESS_ACCEL					(0x32 >> 1)
+#define LSM303_REGISTER_ACCEL_CTRL_REG1_A		0x20
+#define LSM303_REGISTER_ACCEL_CTRL_REG3_A		0x22
+#define LSM303_REGISTER_ACCEL_INT1_CFG_A		0x30
+#define LSM303_REGISTER_ACCEL_INT1_THS_A		0x32
+#define LSM303_REGISTER_ACCEL_INT1_DURATION_A	0x33
 
 int a0val = -100;
 bool lastInterrupt = false;
@@ -54,55 +48,71 @@ void accelerometerISR() {
 
 
 void loop() {
-//	checkInterruptVoltage();
-//  checkInterruptRegister();
-}
 
-void checkInterruptVoltage() {
-  int newVal = analogRead(A0);
-  if (abs(newVal - a0val) > 10) {
-    a0val = newVal;
-    Serial.print("A0: ");
-    Serial.println(5.0 * (newVal / 1023.0));  
-  }  
-}
-
-void checkInterruptRegister() {
-  bool currentInterrupt = accel.interruptActive();
-  if (currentInterrupt != lastInterrupt) {
-    if (!lastInterrupt) {
-      Serial.println("Interrupt Activated");
-    }
-    else {
-      Serial.println("Interrupt Reset");
-    }
-    lastInterrupt = currentInterrupt;
-  }
-}
-
-bool readOrientation() {
-  accel.getEvent(&accelerationEvent);
-  mag.getEvent(&magnetometerEvent);
-  return dof.fusionGetOrientation(&accelerationEvent, &magnetometerEvent, &orientation);
 }
 
 void initSensors()
 {
 	Serial.println("Initializing Sensors");
-  if(!accel.begin())
-  {
-    /* There was a problem detecting the LSM303 ... check your connections */
-    Serial.println(F("Ooops, no LSM303 detected ... Check your wiring!"));
-    while(1);
-  } else {
-    Serial.println("LSM303 accelerometer initialized");
-  }
-  if(!mag.begin())
-  {
-    /* There was a problem detecting the LSM303 ... check your connections */
-    Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
-    while(1);
-  } else {
-    Serial.println("LSM303 magnetometer initialized");
-  }
+	Wire.begin();
+
+	uint8_t cfg1_value = 0x5F;   // \100 hODR cycle, low power, 3 axis
+
+	// Enable the accelerometer (100Hz)
+	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A, cfg1_value);
+	// AOI interrupt enable -- position interrupt enabled on LIN1
+	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG3_A, 0x60);
+	// INT1 Configuration -- OR movement recognition, X Y Z High event
+	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_CFG_A, 0x2A);
+	// INT1 Threshold -- absolute value of movement greater than 16 milli-Gs
+	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_THS_A, 0x4F);
+	// INT1 Duration -- movement must be for more than 1 ODR cycle... maybe 10ms
+	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_DURATION_A, 0x01);
+
+
+	// LSM303DLHC has no WHOAMI register so read CTRL_REG1_A back to check
+	// if we are connected or not
+	uint8_t reg1_a = read8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A);
+	if (reg1_a != cfg1_value)
+	{
+		Serial.println("Error initializing LSM303");
+	}
+	else {
+		Serial.println("Done initializing LSM303");
+	}
+}
+
+void write8(byte address, byte reg, byte value)
+{
+	Wire.beginTransmission(address);
+#if ARDUINO >= 100
+	Wire.write((uint8_t)reg);
+	Wire.write((uint8_t)value);
+#else
+	Wire.send(reg);
+	Wire.send(value);
+#endif
+	Wire.endTransmission();
+}
+
+byte read8(byte address, byte reg)
+{
+	byte value;
+
+	Wire.beginTransmission(address);
+#if ARDUINO >= 100
+	Wire.write((uint8_t)reg);
+#else
+	Wire.send(reg);
+#endif
+	Wire.endTransmission();
+	Wire.requestFrom(address, (byte)1);
+#if ARDUINO >= 100
+	value = Wire.read();
+#else
+	value = Wire.receive();
+#endif  
+	Wire.endTransmission();
+
+	return value;
 }
