@@ -158,18 +158,34 @@ bool Adafruit_LSM303_Accel_Unified::begin()
   // Enable I2C
   Wire.begin();
 
+  uint8_t cfg1_value = 0x57;   // default 100 hz ODR cycle, high power, 3 axis
+
   // Enable the accelerometer (100Hz)
-  write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A, 0x57);
+  write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A, cfg1_value);
+  // AOI interrupt enable -- position interrupt enabled on LIN1
+  write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG3_A, 0x60);
+  // INT1 Configuration -- OR movement recognition, X Y Z High event
+  write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_CFG_A, 0x2A);
+  // INT1 Threshold -- absolute value of movement greater than 16 milli-Gs
+  write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_THS_A, 0x4F);
+  // INT1 Duration -- movement must be for more than 1 ODR cycle... maybe 10ms
+  write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_DURATION_A, 0x01);
+
   
   // LSM303DLHC has no WHOAMI register so read CTRL_REG1_A back to check
   // if we are connected or not
   uint8_t reg1_a = read8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A);
-  if (reg1_a != 0x57)
+  if (reg1_a != cfg1_value)
   {
     return false;
   }  
   
   return true;
+}
+
+bool Adafruit_LSM303_Accel_Unified::interruptActive() {
+	uint8_t src_reg = read8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_SOURCE_A);
+	return src_reg >= 64;
 }
 
 /**************************************************************************/

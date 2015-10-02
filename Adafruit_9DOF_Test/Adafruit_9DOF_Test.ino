@@ -12,63 +12,56 @@ Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(30302);
 sensors_event_t accelerationEvent;  // roll and pitch
 sensors_event_t magnetometerEvent;  // yaw (heading)
 sensors_vec_t   orientation;
-int a0val = 0;
+int a0val = -100;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   Serial.println("Hello World");
   initSensors();  
-  setInterrupts();
   pinMode(A0, INPUT);
   
 }
 
+bool lastInterrupt = false;
+
 void loop() {
+	/*
   int newVal = analogRead(A0);
-  if (abs(newVal - a0val) > 5) {
+  if (abs(newVal - a0val) > 10) {
     a0val = newVal;
     Serial.print("A0: ");
-    Serial.println(a0val);
-  }
+    Serial.println(5.0 * (newVal / 1023.0));
+	if (readOrientation()) {
+		Serial.print("orientation: ");
+		Serial.print(orientation.pitch);
+		Serial.print(", ");
+		Serial.print(orientation.roll);
+		Serial.print(", ");
+		Serial.print(orientation.heading);
+		Serial.println("");
+	}
+	else {
+		Serial.println("Could not read orientation");
+	}
+	
+	
+  }*/
+	bool currentInterrupt = accel.interruptActive();
+	if (currentInterrupt != lastInterrupt) {
+		if (!lastInterrupt) {
+			Serial.println("*** AGITATED ***");
+		}
+		else {
+			Serial.println("calm");
+		}
+		lastInterrupt = currentInterrupt;
+	}
 }
 
 bool readOrientation() {
   accel.getEvent(&accelerationEvent);
   mag.getEvent(&magnetometerEvent);
   return dof.fusionGetOrientation(&accelerationEvent, &magnetometerEvent, &orientation);
-}
-
-byte i2c_read(byte address, byte reg) {
-  byte value;
-
-  Wire.beginTransmission(address);
-  Wire.write((uint8_t)reg);
-  Wire.endTransmission();
-  Wire.requestFrom(address, (byte)1);
-  value = Wire.read();
-  Wire.endTransmission();
-  return value;
-}
-
-void i2c_write(byte address, byte reg, byte value) {
-  Wire.beginTransmission(address);
-  Wire.write((uint8_t)reg);
-  Wire.write((uint8_t)value);
-  Wire.endTransmission();
-}
-
-
-
-void setInterrupts() {
-  
-  // Enable OR combination events  
-  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_CFG_A, 0x01);
-
-  // Set threshold
-  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_THS_A, 0x02);
-
-  // Set duration
-  i2c_write(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_DURATION_A, 0x02);
 }
 
 void initSensors()

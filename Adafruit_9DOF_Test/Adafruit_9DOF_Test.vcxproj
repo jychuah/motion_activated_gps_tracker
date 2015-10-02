@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C19B5DCB-FFD2-4C1B-BD93-469F33859664}</ProjectGuid>
+    <RootNamespace>Adafruit_9DOF_Test</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\Program Files\Arduino\hardware\arduino\avr\cores\arduino;C:\Program Files\Arduino\hardware\arduino\avr\variants\standard;C:\Users\jchuah\Dropbox\GPSTracker\Adafruit_9DOF_Test;C:\Program Files\Arduino\hardware\arduino\avr\libraries\Wire;C:\Program Files\Arduino\hardware\arduino\avr\libraries\Wire\utility;C:\Program Files\Arduino\libraries;C:\Program Files\Arduino\hardware\arduino\avr\libraries;C:\Program Files\Microsoft Visual Studio 12.0\Common7\IDE\Extensions\hlavq53v.dvn\Micro Platforms\default\debuggers;C:\Users\jchuah\Documents\Arduino\libraries;C:\Users\jchuah\Dropbox\GPSTracker\Adafruit_9DOF_Test;C:\Program Files\Arduino\hardware\arduino\avr\cores\arduino;C:\Program Files\Arduino\hardware\arduino\avr\variants\standard;C:\Program Files\Microsoft Visual Studio 12.0\Common7\IDE\Extensions\hlavq53v.dvn\Micro Platforms\default\debuggers\VM_DBG;C:\Program Files\Arduino\hardware\arduino\avr\libraries\Wire;C:\Program Files\Arduino\libraries;C:\Program Files\Arduino\hardware\arduino\avr\libraries;C:\Program Files\Microsoft Visual Studio 12.0\Common7\IDE\Extensions\hlavq53v.dvn\Micro Platforms\default\debuggers;C:\Users\jchuah\Documents\Arduino\libraries;C:\Program Files\Arduino\hardware\arduino\avr\libraries\Wire\utility;C:\Program Files\Arduino\hardware\tools\avr/avr/include/;C:\Program Files\Arduino\hardware\tools\avr//avr/include/avr/;C:\Program Files\Arduino\hardware\tools\avr/lib\gcc\avr\4.8.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>C:\Users\jchuah\Dropbox\GPSTracker\Adafruit_9DOF_Test\__vm\.Adafruit_9DOF_Test.vsarduino.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <IgnoreStandardIncludePath>true</IgnoreStandardIncludePath>
+      <PreprocessorDefinitions>__AVR_ATmega328p__;__AVR_ATmega328P__;_VMDEBUG=1;F_CPU=16000000L;ARDUINO=165;ARDUINO_AVR_UNO;ARDUINO_ARCH_AVR;__cplusplus;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="Adafruit_9DOF_Test.ino">
+      <FileType>CppCode</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Adafruit_9DOF.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="Adafruit_L3GD20_U.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="Adafruit_LSM303_U.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="Adafruit_Sensor.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
+    <ClInclude Include="__vm\.Adafruit_9DOF_Test.vsarduino.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Adafruit_9DOF.cpp" />
+    <ClCompile Include="Adafruit_L3GD20_U.cpp" />
+    <ClCompile Include="Adafruit_LSM303_U.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties arduino.upload.port="COM3" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

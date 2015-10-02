@@ -160,6 +160,7 @@ class Adafruit_LSM303_Accel_Unified : public Adafruit_Sensor
     Adafruit_LSM303_Accel_Unified(int32_t sensorID = -1);
   
     bool begin(void);
+	bool interruptActive();
     bool getEvent(sensors_event_t*);
     void getSensor(sensor_t*);
 
