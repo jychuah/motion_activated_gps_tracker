@@ -158,7 +158,7 @@ bool Adafruit_LSM303_Accel_Unified::begin()
   // Enable I2C
   Wire.begin();
 
-  uint8_t cfg1_value = 0x57;   // default 100 hz ODR cycle, high power, 3 axis
+  uint8_t cfg1_value = 0x5F;   // \100 hODR cycle, low power, 3 axis
 
   // Enable the accelerometer (100Hz)
   write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A, cfg1_value);
