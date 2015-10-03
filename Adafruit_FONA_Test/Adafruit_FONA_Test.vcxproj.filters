@@ -15,11 +15,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Adafruit_9DOF_Test.ino" />
+    <None Include="Adafruit_FONA_Test.ino" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="__vm\.Adafruit_9DOF_Test.vsarduino.h">
+    <ClInclude Include="__vm\.Adafruit_FONA_Test.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Adafruit_FONA.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Adafruit_FONA.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
