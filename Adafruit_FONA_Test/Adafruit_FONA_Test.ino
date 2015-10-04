@@ -27,9 +27,23 @@ the commented section below at the end of the setup() function.
 */
 #include "Adafruit_FONA.h"
 
+#define UID			"d76db2b8-be35-477c-a428-2623d523fbfd"
+#define IMEI		"865067020757418"
+#define HELPER_URL	"http://webpersistent.com/motorbike-tracker/helper/post.php"
+
+
 #define FONA_RX 2
 #define FONA_TX 3
 #define FONA_RST 4
+
+#define UID_INDEX 11
+#define IMEI_INDEX 60
+#define EVENT_INDEX 89
+#define DATA_INDEX 118
+
+char postdata[] = "{ \"uid\" : \"d76db2b8-be35-477c-a428-2623d523fbfd\", "
+	"\"imei\" : \"865067020757418\", \"event\" : \"event_type_string\","
+	"\"data\" : \"01234567891123456789212345678931234567894123456789512345678961234567897123456789\"}";
 
 // this is a large buffer for replies
 char replybuffer[255];
@@ -54,9 +68,6 @@ Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
 uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
 uint8_t type;
-
-char url2[] = "https://motorbike-tracker.firebase.io/uid/d76db2b8-be35-477c-a428-2623d523fbfd/imei/865067020757418/events.json?auth=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhZG1pbiI6ZmFsc2UsImRlYnVnIjpmYWxzZSwiZCI6eyJ1aWQiOiJkNzZkYjJiOC1iZTM1LTQ3N2MtYTQyOC0yNjIzZDUyM2ZiZmQifSwidiI6MCwiaWF0IjoxNDQzOTIxMzA0fQ.3lsgX2rGFDQzU3nO8pKH_gcdJCxtIAfDxN_HLHVNmw4";
-
 
 void setup() {
 	while (!Serial);
@@ -96,6 +107,9 @@ void setup() {
 	if (imeiLen > 0) {
 		Serial.print("SIM card IMEI: "); Serial.println(imei);
 	}
+	strncpy(&postdata[IMEI_INDEX], imei, 15);
+	strncpy(&postdata[UID_INDEX], UID, strlen(UID));
+	Serial.println(postdata);
 
 	// Optionally configure a GPRS APN, username, and password.
 	// You might need to do this to access your network's GPRS/data
@@ -111,6 +125,7 @@ void setup() {
 
 	printMenu();
 }
+
 
 void printMenu(void) {
 	Serial.println(F("-------------------------------------"));
@@ -475,10 +490,17 @@ void loop() {
 		Serial.println("Firebase Test");
 		uint16_t statuscode;
 		int16_t length;
-		char data[] = " { \"timestamp\" : \"now\" }";
+		String event = "gps";
+		String event_data = "coordinate";
+		String data_string = "{ \"uid\" : \"" + String(UID) + "\", \"imei\" : \"" + String(IMEI) + "\", \"event\" : \"" + event +
+			"\", \"data\" : \"" + event_data + "\"}";
+		char data[data_string.length()];
+		data_string.toCharArray(data, data_string.length(), 0);
+		
 
-		if (!fona.HTTP_POST_start(url2, F("text/plain"), (uint8_t *)data, strlen(data), &statuscode, (uint16_t *)&length)) {
+		if (!fona.HTTP_POST_start(HELPER_URL, F("text/plain"), (uint8_t *)data, strlen(data), &statuscode, (uint16_t *)&length)) {
 			Serial.println("Failed!");
+			break;
 		}
 		Serial.print("length: ");
 		Serial.println(length);
