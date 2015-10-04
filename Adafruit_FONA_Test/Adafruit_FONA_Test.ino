@@ -99,7 +99,7 @@ void setup() {
 	// network.  Contact your provider for the exact APN, username,
 	// and password values.  Username and password are optional and
 	// can be removed, but APN is required.
-	//fona.setGPRSNetworkSettings(F("your APN"), F("your username"), F("your password"));
+	fona.setGPRSNetworkSettings(F("fast.t-mobile.com"));
 
 	// Optionally configure HTTP gets to follow redirects over SSL.
 	// Default is not to follow SSL redirects, however if you uncomment
@@ -118,31 +118,7 @@ void printMenu(void) {
 	Serial.println(F("[U] Unlock SIM with PIN code"));
 	Serial.println(F("[i] read RSSI"));
 	Serial.println(F("[n] get Network status"));
-	Serial.println(F("[v] set audio Volume"));
-	Serial.println(F("[V] get Volume"));
-	Serial.println(F("[H] set Headphone audio (FONA800 & 808)"));
-	Serial.println(F("[e] set External audio (FONA800 & 808)"));
-	Serial.println(F("[T] play audio Tone"));
 	Serial.println(F("[P] PWM/Buzzer out (FONA800 & 808)"));
-
-	// FM (SIM800 only!)
-	Serial.println(F("[f] tune FM radio (FONA800)"));
-	Serial.println(F("[F] turn off FM (FONA800)"));
-	Serial.println(F("[m] set FM volume (FONA800)"));
-	Serial.println(F("[M] get FM volume (FONA800)"));
-	Serial.println(F("[q] get FM station signal level (FONA800)"));
-
-	// Phone
-	Serial.println(F("[c] make phone Call"));
-	Serial.println(F("[h] Hang up phone"));
-	Serial.println(F("[p] Pick up phone"));
-
-	// SMS
-	Serial.println(F("[N] Number of SMSs"));
-	Serial.println(F("[r] Read SMS #"));
-	Serial.println(F("[R] Read All SMS"));
-	Serial.println(F("[d] Delete SMS #"));
-	Serial.println(F("[s] Send SMS"));
 
 	// Time
 	Serial.println(F("[y] Enable network time sync (FONA 800 & 808)"));
@@ -166,6 +142,7 @@ void printMenu(void) {
 		}
 		Serial.println(F("[E] Raw NMEA out (FONA808)"));
 	}
+	Serial.println(F("[F] Firebase test"));
 
 	Serial.println(F("[S] create Serial passthru tunnel"));
 	Serial.println(F("-------------------------------------"));
@@ -279,152 +256,6 @@ void loop() {
 		break;
 	}
 
-			  /*** Audio ***/
-	case 'v': {
-		// set volume
-		flushSerial();
-		if ((type == FONA3G_A) || (type == FONA3G_E)) {
-			Serial.print(F("Set Vol [0-8] "));
-		}
-		else {
-			Serial.print(F("Set Vol % [0-100] "));
-		}
-		uint8_t vol = readnumber();
-		Serial.println();
-		if (!fona.setVolume(vol)) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("OK!"));
-		}
-		break;
-	}
-
-	case 'V': {
-		uint8_t v = fona.getVolume();
-		Serial.print(v);
-		if ((type == FONA3G_A) || (type == FONA3G_E)) {
-			Serial.println(" / 8");
-		}
-		else {
-			Serial.println("%");
-		}
-		break;
-	}
-
-	case 'H': {
-		// Set Headphone output
-		if (!fona.setAudio(FONA_HEADSETAUDIO)) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("OK!"));
-		}
-		fona.setMicVolume(FONA_HEADSETAUDIO, 15);
-		break;
-	}
-	case 'e': {
-		// Set External output
-		if (!fona.setAudio(FONA_EXTAUDIO)) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("OK!"));
-		}
-
-		fona.setMicVolume(FONA_EXTAUDIO, 10);
-		break;
-	}
-
-	case 'T': {
-		// play tone
-		flushSerial();
-		Serial.print(F("Play tone #"));
-		uint8_t kittone = readnumber();
-		Serial.println();
-		// play for 1 second (1000 ms)
-		if (!fona.playToolkitTone(kittone, 1000)) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("OK!"));
-		}
-		break;
-	}
-
-			  /*** FM Radio ***/
-
-	case 'f': {
-		// get freq
-		flushSerial();
-		Serial.print(F("FM Freq (eg 1011 == 101.1 MHz): "));
-		uint16_t station = readnumber();
-		Serial.println();
-		// FM radio ON using headset
-		if (fona.FMradio(true, FONA_HEADSETAUDIO)) {
-			Serial.println(F("Opened"));
-		}
-		if (!fona.tuneFMradio(station)) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("Tuned"));
-		}
-		break;
-	}
-	case 'F': {
-		// FM radio off
-		if (!fona.FMradio(false)) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("OK!"));
-		}
-		break;
-	}
-	case 'm': {
-		// Set FM volume.
-		flushSerial();
-		Serial.print(F("Set FM Vol [0-6]:"));
-		uint8_t vol = readnumber();
-		Serial.println();
-		if (!fona.setFMVolume(vol)) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("OK!"));
-		}
-		break;
-	}
-	case 'M': {
-		// Get FM volume.
-		uint8_t fmvol = fona.getFMVolume();
-		if (fmvol < 0) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.print(F("FM volume: "));
-			Serial.println(fmvol, DEC);
-		}
-		break;
-	}
-	case 'q': {
-		// Get FM station signal level (in decibels).
-		flushSerial();
-		Serial.print(F("FM Freq (eg 1011 == 101.1 MHz): "));
-		uint16_t station = readnumber();
-		Serial.println();
-		int8_t level = fona.getFMSignalLevel(station);
-		if (level < 0) {
-			Serial.println(F("Failed! Make sure FM radio is on (tuned to station)."));
-		}
-		else {
-			Serial.print(F("Signal level (dB): "));
-			Serial.println(level, DEC);
-		}
-		break;
-	}
-
 			  /*** PWM ***/
 
 	case 'P': {
@@ -442,158 +273,6 @@ void loop() {
 		break;
 	}
 
-			  /*** Call ***/
-	case 'c': {
-		// call a phone!
-		char number[30];
-		flushSerial();
-		Serial.print(F("Call #"));
-		readline(number, 30);
-		Serial.println();
-		Serial.print(F("Calling ")); Serial.println(number);
-		if (!fona.callPhone(number)) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("Sent!"));
-		}
-
-		break;
-	}
-	case 'h': {
-		// hang up!
-		if (!fona.hangUp()) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("OK!"));
-		}
-		break;
-	}
-
-	case 'p': {
-		// pick up!
-		if (!fona.pickUp()) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("OK!"));
-		}
-		break;
-	}
-
-			  /*** SMS ***/
-
-	case 'N': {
-		// read the number of SMS's!
-		int8_t smsnum = fona.getNumSMS();
-		if (smsnum < 0) {
-			Serial.println(F("Could not read # SMS"));
-		}
-		else {
-			Serial.print(smsnum);
-			Serial.println(F(" SMS's on SIM card!"));
-		}
-		break;
-	}
-	case 'r': {
-		// read an SMS
-		flushSerial();
-		Serial.print(F("Read #"));
-		uint8_t smsn = readnumber();
-		Serial.print(F("\n\rReading SMS #")); Serial.println(smsn);
-
-		// Retrieve SMS sender address/phone number.
-		if (!fona.getSMSSender(smsn, replybuffer, 250)) {
-			Serial.println("Failed!");
-			break;
-		}
-		Serial.print(F("FROM: ")); Serial.println(replybuffer);
-
-		// Retrieve SMS value.
-		uint16_t smslen;
-		if (!fona.readSMS(smsn, replybuffer, 250, &smslen)) { // pass in buffer and max len!
-			Serial.println("Failed!");
-			break;
-		}
-		Serial.print(F("***** SMS #")); Serial.print(smsn);
-		Serial.print(" ("); Serial.print(smslen); Serial.println(F(") bytes *****"));
-		Serial.println(replybuffer);
-		Serial.println(F("*****"));
-
-		break;
-	}
-	case 'R': {
-		// read all SMS
-		int8_t smsnum = fona.getNumSMS();
-		uint16_t smslen;
-		int8_t smsn;
-
-		if ((type == FONA3G_A) || (type == FONA3G_E)) {
-			smsn = 0; // zero indexed
-			smsnum--;
-		}
-		else {
-			smsn = 1;  // 1 indexed
-		}
-
-		for (; smsn <= smsnum; smsn++) {
-			Serial.print(F("\n\rReading SMS #")); Serial.println(smsn);
-			if (!fona.readSMS(smsn, replybuffer, 250, &smslen)) {  // pass in buffer and max len!
-				Serial.println(F("Failed!"));
-				break;
-			}
-			// if the length is zero, its a special case where the index number is higher
-			// so increase the max we'll look at!
-			if (smslen == 0) {
-				Serial.println(F("[empty slot]"));
-				smsnum++;
-				continue;
-			}
-
-			Serial.print(F("***** SMS #")); Serial.print(smsn);
-			Serial.print(" ("); Serial.print(smslen); Serial.println(F(") bytes *****"));
-			Serial.println(replybuffer);
-			Serial.println(F("*****"));
-		}
-		break;
-	}
-
-	case 'd': {
-		// delete an SMS
-		flushSerial();
-		Serial.print(F("Delete #"));
-		uint8_t smsn = readnumber();
-
-		Serial.print(F("\n\rDeleting SMS #")); Serial.println(smsn);
-		if (fona.deleteSMS(smsn)) {
-			Serial.println(F("OK!"));
-		}
-		else {
-			Serial.println(F("Couldn't delete"));
-		}
-		break;
-	}
-
-	case 's': {
-		// send an SMS!
-		char sendto[21], message[141];
-		flushSerial();
-		Serial.print(F("Send to #"));
-		readline(sendto, 20);
-		Serial.println(sendto);
-		Serial.print(F("Type out one-line message (140 char): "));
-		readline(message, 140);
-		Serial.println(message);
-		if (!fona.sendSMS(sendto, message)) {
-			Serial.println(F("Failed"));
-		}
-		else {
-			Serial.println(F("Sent!"));
-		}
-
-		break;
-	}
 
 			  /*** Time ***/
 
@@ -716,10 +395,15 @@ void loop() {
 		Serial.println(F("NOTE: in beta! Use small webpages to read!"));
 		Serial.println(F("URL to read (e.g. www.adafruit.com/testwifi/index.html):"));
 		Serial.print(F("http://")); readline(url, 79);
+		Serial.println("Echoing URL:");
 		Serial.println(url);
 
 		Serial.println(F("****"));
 		if (!fona.HTTP_GET_start(url, &statuscode, (uint16_t *)&length)) {
+			Serial.print("Status code:");
+			Serial.println(statuscode);
+			Serial.print("Length: ");
+			Serial.println(length);
 			Serial.println("Failed!");
 			break;
 		}
@@ -781,6 +465,11 @@ void loop() {
 		}
 		Serial.println(F("\n****"));
 		fona.HTTP_POST_end();
+		break;
+	}
+
+	case 'F': {
+		Serial.println("Firebase Test");
 		break;
 	}
 			  /*****************************************/
