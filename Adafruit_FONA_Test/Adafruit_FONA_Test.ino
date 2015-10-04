@@ -55,6 +55,9 @@ uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
 uint8_t type;
 
+char url2[] = "https://motorbike-tracker.firebase.io/uid/d76db2b8-be35-477c-a428-2623d523fbfd/imei/865067020757418/events.json?auth=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhZG1pbiI6ZmFsc2UsImRlYnVnIjpmYWxzZSwiZCI6eyJ1aWQiOiJkNzZkYjJiOC1iZTM1LTQ3N2MtYTQyOC0yNjIzZDUyM2ZiZmQifSwidiI6MCwiaWF0IjoxNDQzOTIxMzA0fQ.3lsgX2rGFDQzU3nO8pKH_gcdJCxtIAfDxN_HLHVNmw4";
+
+
 void setup() {
 	while (!Serial);
 
@@ -470,6 +473,34 @@ void loop() {
 
 	case 'F': {
 		Serial.println("Firebase Test");
+		uint16_t statuscode;
+		int16_t length;
+		char data[] = " { \"timestamp\" : \"now\" }";
+
+		if (!fona.HTTP_POST_start(url2, F("text/plain"), (uint8_t *)data, strlen(data), &statuscode, (uint16_t *)&length)) {
+			Serial.println("Failed!");
+		}
+		Serial.print("length: ");
+		Serial.println(length);
+		while (length > 0) {
+			while (fona.available()) {
+				char c = fona.read();
+
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
+				loop_until_bit_is_set(UCSR0A, UDRE0); // Wait until data register empty. 
+				UDR0 = c;
+#else
+				Serial.write(c);
+#endif
+
+				length--;
+				if (!length) break;
+			}
+		}
+		Serial.println(F("\n****"));
+		fona.HTTP_POST_end();
+
+		
 		break;
 	}
 			  /*****************************************/
