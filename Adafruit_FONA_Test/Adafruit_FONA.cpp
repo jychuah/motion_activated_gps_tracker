@@ -708,10 +708,11 @@ uint8_t Adafruit_FONA::getGPS(uint8_t arg, char *buffer, uint8_t maxbuff) {
   }
 
   p+=6;
-
-  uint8_t len = max(maxbuff-1, strlen(p));
+  // changed from max to min
+  uint8_t len = min(maxbuff - 1, strlen(p));
   strncpy(buffer, p, len);
-  buffer[len] = 0;
+  // disable EOL character for use in postdata
+  //  buffer[len] = 0;
 
   readline(); // eat 'OK'
   return len;
