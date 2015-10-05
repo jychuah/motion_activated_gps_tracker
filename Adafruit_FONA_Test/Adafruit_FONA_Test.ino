@@ -45,15 +45,17 @@ the commented section below at the end of the setup() function.
 // Sequence IDs are 20 characters, +4 padding characters
 #define SEQUENCE_INDEX 216
 
+#define setEvent(a)	strncpy(&postdata[EVENT_INDEX], a, strlen(a));
+
 // Event strings
 const char BATTERY[] PROGMEM = "Battery";
 const char NEW_SEQUENCE[] PROGMEM = "NEW SEQUENCE";
 const char GPS_LOCATION[] PROGMEM = "GPS Location";
 
-char postdata[] = "{ \"uid\" : \"d76db2b8-be35-477c-a428-2623d523fbfd\", "
-	"\"imei\" : \"865067020757418\", \"event\" : \"event_type_string\","
+char postdata[] = "{ \"uid\" : \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\", "
+	"\"imei\" : \"xxxxxxxxxxxxxxx\", \"event\" : \"event_type_string\","
 	"\"data\" : \"01234567891123456789212345678931234567894123456789512345678961234567897123456789"
-	"8123456789912345678901234567891123456789\", \"sequence\" : \"-K-knDu-dUJq7fFs8Xuu    \" }";
+	"8123456789912345678901234567891123456789\", \"sequence\" : \"xxxxxxxxxxxxxxxxxxxx    \" }";
 char postresult[30];
 
 // this is a large buffer for replies
@@ -122,6 +124,21 @@ void setup() {
 	// the following line then redirects over SSL will be followed.
 	//fona.setHTTPSRedirect(true);
 
+#ifdef DEBUG
+	Serial.println(F("Enabling GPRS"));
+#endif
+	while(!fona.enableGPRS(true));
+
+#ifdef DEBUG
+	Serial.println(F("Enabling GPS"));
+#endif
+	while(!fona.enableGPS(true));
+
+// Test sequence
+#ifdef DEBUG
+	Serial.println(F("Starting sequence"));
+	while (!newSequence());
+#endif
 }
 
 void initPostData() {
@@ -142,7 +159,6 @@ bool sendPostData() {
 	}
 
 	int i = 0;
-
 	while (length > 0) {
 		while (fona.available()) {
 			char c = fona.read();
@@ -178,7 +194,7 @@ void checkBattery() {
 	if (fona.getBattPercent(&vbat)) {
 		if (vbat < 10) {
 			initPostData();
-			strncpy(&postdata[EVENT_INDEX], BATTERY, strlen(BATTERY));
+			setEvent(BATTERY);
 			// TODO: copy battery to data...
 
 			sendPostData();
@@ -188,19 +204,32 @@ void checkBattery() {
 	else {
 		Serial.print(F("Failed to read battery"));
 	}
-#endif
-	
+#endif	
 }
-
 
 void logGPSLocation() {
 	initPostData();
+	setEvent(GPS_LOCATION);
 	fona.getGPS(0, &postdata[DATA_INDEX], 120);
 	sendPostData();
 #ifdef DEBUG
 	Serial.print(F("GPS Data: "));
 	Serial.println(postdata[DATA_INDEX], 120);
 #endif
+}
+
+bool newSequence() {
+	//TODO: Test
+	initPostData();
+	setEvent(NEW_SEQUENCE);
+	sendPostData();
+	if (strlen(postresult) == 20) {
+		strncpy(&postdata[SEQUENCE_INDEX], postresult, strlen(postresult));
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 void loop() {
