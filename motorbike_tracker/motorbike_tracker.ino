@@ -52,7 +52,9 @@ User specific settings
 const char BATTERY[] PROGMEM = "Battery";
 const char NEW_SEQUENCE[] PROGMEM = "NEW SEQUENCE";
 const char GPS_LOCATION[] PROGMEM = "GPS Location";
+const char WAKE_EVENT[] PROGMEM = "TRACKER WAKE";
 const char ERROR[] PROGMEM = "ERROR";
+
 
 #define UID_INDEX 11
 #define IMEI_INDEX 60
@@ -127,6 +129,7 @@ void setup() {
 	while (!newSequence()) delay(5000);
 
 	//initInterrupt();
+	//logWakeEvent();
 }
 
 void loop() {
@@ -135,7 +138,7 @@ void loop() {
 	while (fona.available()) {
 		Serial.write(fona.read());
 	}
-
+	checkLowBattery();
 	logGPSLocation();
 	delay(10000);
 
@@ -184,7 +187,14 @@ bool sendPostData() {
 	return true;
 }
 
-bool checkBattery() {
+bool logWakeEvent() {
+	clearPostData();
+	setEvent(WAKE_EVENT);
+	sendPostData();
+	return postError();
+}
+
+bool checkLowBattery() {
 	uint16_t vbat;
 
 	if (fona.getBattPercent(&vbat)) {
