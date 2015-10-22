@@ -63,7 +63,7 @@ const char ERROR[] PROGMEM = "ERROR";
 #define SEQUENCE_INDEX 255
 
 char postdata[] = "{ \"uid\" : \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\", "
-"\"imei\" : \"xxxxxxxxxxxxxxx\", \"event\" : \"event_type_string\","
+"\"imei\" : \"xxxxxxxxxxxxxxx\", \"type\" : \"event_type_string\","
 "\"data\" : \"012345678911234567892123456789312345678941234567895123456789612345678971234567898123456789912345678901234567891123456789\""
 ", \"sequence\" : \"                        \" }";
 
@@ -170,7 +170,7 @@ bool sendPostData() {
 			postresult[i] = c;
 
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
-			loop_until_bit_is_set(UCSR0A, UDRE0); // Wait until data register empty. 
+			loop_until_bit_is_set(UCSR0A, UDRE0); // Wait until data register empty.
 			UDR0 = c;
 #else
 			Serial.write(c);
@@ -325,7 +325,7 @@ byte read8(byte address, byte reg)
 	value = Wire.read();
 #else
 	value = Wire.receive();
-#endif  
+#endif
 	Wire.endTransmission();
 
 	return value;
