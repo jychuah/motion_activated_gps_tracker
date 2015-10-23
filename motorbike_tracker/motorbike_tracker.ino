@@ -159,7 +159,6 @@ bool sendPostData() {
 	int16_t length;
 
 	if (!fona.HTTP_POST_start(HELPER_URL, F("application/json"), (uint8_t *)postdata, strlen(postdata), &statuscode, (uint16_t *)&length)) {
-		Serial.println("Failed!");
 		return false;
 	}
 	int i = 0;
@@ -190,7 +189,7 @@ bool sendPostData() {
 bool logWakeEvent() {
 	clearPostData();
 	setEvent(WAKE_EVENT);
-	sendPostData();
+	if (!sendPostData()) return false;
 	return postError();
 }
 
@@ -204,7 +203,7 @@ bool checkLowBattery() {
 
 			// TODO: copy battery to data...
 
-			sendPostData();
+			if (!sendPostData()) return false;
 			if (postError()) return false;
 		}
 	}
@@ -219,7 +218,7 @@ bool logGPSLocation() {
 	clearPostData();
 	setEvent(GPS_LOCATION);
 	fona.getGPS(0, &postdata[DATA_INDEX], 120);
-	sendPostData();
+	if (!sendPostData()) return false;
 	if (postError()) {
 		return false;
 	}
@@ -229,7 +228,7 @@ bool logGPSLocation() {
 bool newSequence() {
 	clearPostData();
 	setEvent(NEW_SEQUENCE);
-	sendPostData();
+	if (!sendPostData()) return false;
 	if (postError()) {
 		return false;
 	}
