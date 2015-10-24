@@ -14,6 +14,7 @@ BSD license, all text above must be included in any redistribution
 ***************************************************************************************/
 
 #include "Adafruit_FONA.h"
+#include "Adafruit_MMA8451.h"
 #include <Wire.h>
 #include <avr/sleep.h>
 
@@ -25,18 +26,6 @@ User specific settings
 #define		IMEI				"865067020757418"
 /**************************************************************************************/
 #define DEBUG true
-
-
-/***************************** Accelerometer Definitions ******************************/
-#define ACCEL_INT1_PIN							2
-#define LSM303_ADDRESS_ACCEL					(0x32 >> 1)
-#define LSM303_REGISTER_ACCEL_CTRL_REG1_A		0x20
-#define LSM303_REGISTER_ACCEL_CTRL_REG3_A		0x22
-#define LSM303_REGISTER_ACCEL_INT1_CFG_A		0x30
-#define LSM303_REGISTER_ACCEL_INT1_THS_A		0x32
-#define LSM303_REGISTER_ACCEL_INT1_DURATION_A	0x33
-#define SENSITIVITY_PEAK_VOLTAGE				2.45
-
 
 #define FONA_RX 2
 #define FONA_TX 3
@@ -61,6 +50,7 @@ const char ERROR[] PROGMEM = "ERROR";
 #define EVENT_INDEX 89
 #define DATA_INDEX 118
 #define SEQUENCE_INDEX 255
+#define ACCEL_INT2_PIN 2
 
 char postdata[] = "{ \"uid\" : \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\", "
 "\"imei\" : \"xxxxxxxxxxxxxxx\", \"type\" : \"event_type_string\","
@@ -82,8 +72,9 @@ SoftwareSerial *fonaSerial = &fonaSS;
 HardwareSerial *fonaSerial = &Serial1;
 #endif
 
-// Use this for FONA 800 and 808s
+// Hardware definitions
 Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
+Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
 uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
@@ -92,21 +83,22 @@ uint8_t type;
 void setup() {
 	while (!Serial);
 
-	Serial.begin(4800);
+	Serial.begin(9600);
 	Serial.println(F("FONA basic test"));
 	Serial.println(F("Initializing....(May take 3 seconds)"));
-
-	fonaSerial->begin(4800);
-
+	/*
+	fonaSerial->begin(9600);
+	
 	if (!fona.begin(*fonaSerial)) {
 		Serial.println(F("Couldn't find FONA"));
 		while (1);
 	}
-	type = fona.type();
+	*/
+//	type = fona.type();
 
 	// Print SIM card IMEI number.
 	char imei[15] = { 0 }; // MUST use a 16 character buffer for IMEI!
-	uint8_t imeiLen = fona.getIMEI(imei);
+//	uint8_t imeiLen = fona.getIMEI(imei);
 
 	// Set IMEI in post data
 	strncpy(&postdata[IMEI_INDEX], imei, 15);
@@ -117,23 +109,45 @@ void setup() {
 
 	initSensors();
 
-	fona.setGPRSNetworkSettings(F(APN));
+//	fona.setGPRSNetworkSettings(F(APN));
 
 	Serial.println(F("Enabling GPRS"));
-	while (!fona.enableGPRS(true)) delay(5000);
+//	while (!fona.enableGPRS(true)) delay(5000);
 
 	Serial.println(F("Enabling GPS"));
-	while (!fona.enableGPS(true)) delay(5000);
+//	while (!fona.enableGPS(true)) delay(5000);
 
 	Serial.println(F("Starting sequence"));
-	while (!newSequence()) delay(5000);
+//	while (!newSequence()) delay(5000);
 
-	//initInterrupt();
 	//logWakeEvent();
+
+	if (!mma.begin()) {
+		Serial.println("Coudln't init accel");
+	} else {
+		Serial.println("MMA ok");
+	}
+	pinMode(2, INPUT);
+	
+//	mma.setMotionDetection(0);
 }
 
+uint8_t last = 0xFF;
+
 void loop() {
+	Serial.println(mma.readInterruptSource());
+	int v = digitalRead(2);
+	if (v == HIGH) {
+		Serial.println("HIGH");
+		mma.readMotionSource();
+	}
+	else {
+		Serial.println("LOW");
+	}
+	delay(1000);
+
 	// flush input
+	/*
 	flushSerial();
 	while (fona.available()) {
 		Serial.write(fona.read());
@@ -141,7 +155,7 @@ void loop() {
 	checkLowBattery();
 	logGPSLocation();
 	delay(10000);
-
+	*/
 }
 
 void initPostData() {
@@ -242,9 +256,9 @@ void flushSerial() {
 }
 
 void initInterrupt() {
-	pinMode(ACCEL_INT1_PIN, INPUT);
+	pinMode(ACCEL_INT2_PIN, INPUT);
 	sleep_enable();
-	attachInterrupt(digitalPinToInterrupt(ACCEL_INT1_PIN), accelerometerISR, CHANGE);
+	attachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN), accelerometerISR, CHANGE);
 	Serial.println(F("Going to sleep"));
 	delay(1000);
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -260,14 +274,22 @@ void initInterrupt() {
 
 void accelerometerISR() {
 	sleep_disable();
-	detachInterrupt(digitalPinToInterrupt(ACCEL_INT1_PIN));
+	detachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN));
 	Serial.println(F("Accelerometer Interrupt"));
 
 }
 void initSensors()
 {
 	Serial.println(F("Initializing Sensors"));
-	Wire.begin();
+
+	if (mma.begin()) {
+
+	}
+	else {
+		Serial.println(F("Could not find Adafruit MMA8451 Accelerometer"));
+	}
+	/*
+	DISABLED - migrating to MMA8451
 
 	uint8_t cfg1_value = 0x5F;   // \100 hODR cycle, low power, 3 axis
 
@@ -293,6 +315,9 @@ void initSensors()
 	else {
 		Serial.println(F("Done initializing LSM303"));
 	}
+	*/
+
+
 }
 
 void write8(byte address, byte reg, byte value)
