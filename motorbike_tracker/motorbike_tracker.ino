@@ -135,11 +135,10 @@ void setup() {
 uint8_t last = 0xFF;
 
 void loop() {
-	Serial.println(mma.readInterruptSource());
 	int v = digitalRead(2);
 	if (v == HIGH) {
 		Serial.println("HIGH");
-		mma.readMotionSource();
+		mma.clearMotionDetector();
 	}
 	else {
 		Serial.println("LOW");

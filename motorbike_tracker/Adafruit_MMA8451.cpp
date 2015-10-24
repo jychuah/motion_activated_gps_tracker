@@ -113,141 +113,22 @@ bool Adafruit_MMA8451::begin(uint8_t i2caddr) {
   // Low noise!
   writeRegister8(MMA8451_REG_CTRL_REG1, 0x04);
 
-  setMotionDetection();
+  writeRegister8(MMA8451_FF_MT_CFG, 0xF8);				// configure for no event latch, motion detection, 3 axes
+  writeRegister8(MMA8451_FF_MT_THS, 0X11);				// 0.063G per LSB threshold. 
+  writeRegister8(MMA8451_FF_MT_COUNT, 0x0D);				// debounce count before activation
+  writeRegister8(MMA8451_REG_CTRL_REG3, 0x06);			// MT interrupt wakes, active HIGH
+  writeRegister8(MMA8451_REG_CTRL_REG4, 0x00);
+  writeRegister8(MMA8451_REG_CTRL_REG4, 0x04);			// set MT  interrupts
+  writeRegister8(MMA8451_REG_CTRL_REG5, 0x04);			// route MT to INT2
 
   // Activate!
-  writeRegister8(MMA8451_REG_CTRL_REG1, 0x01); // active, max rate
+  writeRegister8(MMA8451_REG_CTRL_REG1, 0x21); // active, 50 hz
 
-  /*
-  for (uint8_t i=0; i<0x30; i++) {
-    Serial.print("$");
-    Serial.print(i, HEX); Serial.print(" = 0x");
-    Serial.println(readRegister8(i), HEX);
-  }
-  */
 
   return true;
 }
-mma8451_range_t Adafruit_MMA8451::getRange(void)
-{
-	/* Read the data format register to preserve bits */
-	return (mma8451_range_t)(readRegister8(MMA8451_REG_XYZ_DATA_CFG) & 0x03);
-}
-void Adafruit_MMA8451::read(void) {
-	// read x y z at once
-	Wire.beginTransmission(_i2caddr);
-	i2cwrite(MMA8451_REG_OUT_X_MSB);
-	Wire.endTransmission(false); // MMA8451 + friends uses repeated start!!
-
-	Wire.requestFrom(_i2caddr, 6);
-	x = Wire.read(); x <<= 8; x |= Wire.read(); x >>= 2;
-	y = Wire.read(); y <<= 8; y |= Wire.read(); y >>= 2;
-	z = Wire.read(); z <<= 8; z |= Wire.read(); z >>= 2;
 
 
-	uint8_t range = getRange();
-	uint16_t divider = 1;
-	if (range == MMA8451_RANGE_8_G) divider = 1024;
-	if (range == MMA8451_RANGE_4_G) divider = 2048;
-	if (range == MMA8451_RANGE_2_G) divider = 4096;
-
-	x_g = (float)x / divider;
-	y_g = (float)y / divider;
-	z_g = (float)z / divider;
-
-}
-
-
-/**************************************************************************/
-/*!
-    @brief  Sets the g range for the accelerometer
-*/
-/**************************************************************************/
-void Adafruit_MMA8451::setRange(mma8451_range_t range)
-{
-  uint8_t reg1 = readRegister8(MMA8451_REG_CTRL_REG1);
-  writeRegister8(MMA8451_REG_CTRL_REG1, 0x00);            // deactivate
-  writeRegister8(MMA8451_REG_XYZ_DATA_CFG, range & 0x3);
-  writeRegister8(MMA8451_REG_CTRL_REG1, reg1 | 0x01);     // activate
-}
-
-
-/**************************************************************************/
-/*!
-    @brief  Sets the data rate for the MMA8451 (controls power consumption)
-*/
-/**************************************************************************/
-void Adafruit_MMA8451::setDataRate(mma8451_dataRate_t dataRate)
-{
-  uint8_t ctl1 = readRegister8(MMA8451_REG_CTRL_REG1);
-  writeRegister8(MMA8451_REG_CTRL_REG1, 0x00);            // deactivate
-  ctl1 &= ~(MMA8451_DATARATE_MASK << 3);                  // mask off bits
-  ctl1 |= (dataRate << 3);
-  writeRegister8(MMA8451_REG_CTRL_REG1, ctl1 | 0x01);     // activate
-}
-
-void Adafruit_MMA8451::setMotionDetection() {
-	writeRegister8(0x15, 0xF8);				// configure for no event latch, motion detection, 3 axes
-	writeRegister8(0x17, 0X10);				// 0.063G per LSB threshold. 
-	writeRegister8(0x18, 0x0A);				// debounce count before activation
-	writeRegister8(MMA8451_REG_CTRL_REG3, 0x06);			// MT interrupt wakes, active HIGH
-	writeRegister8(MMA8451_REG_CTRL_REG4, 0x00);
-	writeRegister8(MMA8451_REG_CTRL_REG4, 0x04);			// set MT  interrupts
-	writeRegister8(MMA8451_REG_CTRL_REG5, 0x04);			// route MT to INT2
-
-}
-
-uint8_t Adafruit_MMA8451::readInterruptSource() {
-	return readRegister8(MMA8451_INT_SOURCE);
-}
-
-uint8_t Adafruit_MMA8451::readMotionSource() {
+uint8_t Adafruit_MMA8451::clearMotionDetector() {
 	return readRegister8(MMA8451_FF_MT_SRC);
 }
-
-
-#ifdef USE_SENSOR
-/**************************************************************************/
-/*!
-    @brief  Gets the most recent sensor event
-*/
-/**************************************************************************/
-bool Adafruit_MMA8451::getEvent(sensors_event_t *event) {
-  /* Clear the event */
-  memset(event, 0, sizeof(sensors_event_t));
-
-  event->version   = sizeof(sensors_event_t);
-  event->sensor_id = _sensorID;
-  event->type      = SENSOR_TYPE_ACCELEROMETER;
-  event->timestamp = 0;
-
-  read();
-
-  event->acceleration.x = x_g;
-  event->acceleration.y = y_g;
-  event->acceleration.z = z_g;
-  
-  return true;
-}
-
-/**************************************************************************/
-/*!
-    @brief  Gets the sensor_t data
-*/
-/**************************************************************************/
-void Adafruit_MMA8451::getSensor(sensor_t *sensor) {
-  /* Clear the sensor_t object */
-  memset(sensor, 0, sizeof(sensor_t));
-
-  /* Insert the sensor name in the fixed length char array */
-  strncpy (sensor->name, "MMA8451", sizeof(sensor->name) - 1);
-  sensor->name[sizeof(sensor->name)- 1] = 0;
-  sensor->version     = 1;
-  sensor->sensor_id   = _sensorID;
-  sensor->type        = SENSOR_TYPE_ACCELEROMETER;
-  sensor->min_delay   = 0;
-  sensor->max_value   = 0;
-  sensor->min_value   = 0;
-  sensor->resolution  = 0;
-}
-#endif

@@ -99,15 +99,8 @@ class Adafruit_MMA8451
   
   bool begin(uint8_t addr = MMA8451_DEFAULT_ADDRESS);
 
-  void setRange(mma8451_range_t range);
   void read(void);
-  mma8451_range_t getRange(void);
-  void setDataRate(mma8451_dataRate_t dataRate);
-  mma8451_dataRate_t getDataRate(void);
-
-  void setMotionDetection();
-  uint8_t readMotionSource();
-  uint8_t readInterruptSource();
+  uint8_t clearMotionDetector();
 
 #ifdef USE_SENSOR
   bool getEvent(sensors_event_t *event);
