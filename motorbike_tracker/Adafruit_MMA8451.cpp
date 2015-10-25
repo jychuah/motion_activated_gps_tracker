@@ -14,6 +14,10 @@
     @section  HISTORY
 
     v1.0  - First release
+
+	modified by jychuah
+	removed most data methods, changed begin to use
+	motion detection interrupt with latching
 */
 /**************************************************************************/
 
@@ -116,7 +120,7 @@ bool Adafruit_MMA8451::begin(uint8_t i2caddr) {
   writeRegister8(MMA8451_FF_MT_CFG, 0xF8);				// configure for no event latch, motion detection, 3 axes
   writeRegister8(MMA8451_FF_MT_THS, 0X11);				// 0.063G per LSB threshold. 
   writeRegister8(MMA8451_FF_MT_COUNT, 0x0D);				// debounce count before activation
-  writeRegister8(MMA8451_REG_CTRL_REG3, 0x06);			// MT interrupt wakes, active HIGH
+  writeRegister8(MMA8451_REG_CTRL_REG3, 0x04);			// MT interrupt wakes, active LOW
   writeRegister8(MMA8451_REG_CTRL_REG4, 0x00);
   writeRegister8(MMA8451_REG_CTRL_REG4, 0x04);			// set MT  interrupts
   writeRegister8(MMA8451_REG_CTRL_REG5, 0x04);			// route MT to INT2

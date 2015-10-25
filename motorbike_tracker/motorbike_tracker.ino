@@ -13,10 +13,13 @@ Please support Adafruit.
 BSD license, all text above must be included in any redistribution
 ***************************************************************************************/
 
+#include <Wire.h>
 #include "Adafruit_FONA.h"
 #include "Adafruit_MMA8451.h"
-#include <Wire.h>
 #include <avr/sleep.h>
+#include <avr/interrupt.h>
+#include <avr/wdt.h>
+#include <avr/power.h>
 
 /**************************************************************************************
 User specific settings
@@ -76,6 +79,10 @@ HardwareSerial *fonaSerial = &Serial1;
 Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
 Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
+bool motion_detector = false;
+volatile int sleep_cycles = 0;
+volatile int f_wdt = 1;
+
 uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
 uint8_t type;
@@ -128,21 +135,30 @@ void setup() {
 		Serial.println("MMA ok");
 	}
 	pinMode(2, INPUT);
-	
-//	mma.setMotionDetection(0);
+	initWDT();
 }
 
 uint8_t last = 0xFF;
 
+bool should_sleep = true;
+
 void loop() {
-	int v = digitalRead(2);
-	if (v == HIGH) {
-		Serial.println("HIGH");
-		mma.clearMotionDetector();
+	if (f_wdt == 1)
+	{
+		/* Toggle the LED */
+		Serial.println("Wake");
+		delay(1000);
+
+		/* Don't forget to clear the flag. */
+		f_wdt = 0;
+
+		/* Re-enter sleep mode. */
+		if (should_sleep) {
+			enterSleep();
+		}
 	}
-	else {
-		Serial.println("LOW");
-	}
+
+	Serial.println("Loop");
 	delay(1000);
 
 	// flush input
@@ -155,6 +171,53 @@ void loop() {
 	logGPSLocation();
 	delay(10000);
 	*/
+}
+
+void initWDT() {
+	/* Clear the reset flag. */
+	MCUSR &= ~(1 << WDRF);
+
+	/* In order to change WDE or the prescaler, we need to
+	* set WDCE (This will allow updates for 4 clock cycles).
+	*/
+	WDTCSR |= (1 << WDCE) | (1 << WDE);
+
+	/* set new watchdog timeout prescaler value */
+	WDTCSR = 1 << WDP0 | 1 << WDP3; /* 8.0 seconds */
+
+	/* Enable the WD interrupt (note no reset). */
+	WDTCSR |= _BV(WDIE);
+}
+
+ISR(WDT_vect)
+{
+	if (f_wdt == 0)
+	{
+		f_wdt = 1;
+	}
+	else
+	{
+		Serial.println("WDT Overrun!!!");
+	}
+}
+void enterSleep(void)
+{
+	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   /* EDIT: could also use SLEEP_MODE_PWR_DOWN for lowest power consumption. */
+	sleep_enable();
+	if (motion_detector) {
+		Serial.println(mma.clearMotionDetector());
+		delay(1000);
+		pinMode(ACCEL_INT2_PIN, INPUT);
+		attachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN), accelerometerISR, LOW);
+	}
+	/* Now enter sleep mode. */
+	sleep_mode();
+
+	/* The program will continue from here after the WDT timeout*/
+	sleep_disable(); /* First thing to do is disable sleep. */
+
+	/* Re-enable the peripherals. */
+	power_all_enable();
 }
 
 void initPostData() {
@@ -208,7 +271,6 @@ bool logWakeEvent() {
 
 bool checkLowBattery() {
 	uint16_t vbat;
-
 	if (fona.getBattPercent(&vbat)) {
 		if (vbat < 10) {
 			clearPostData();
@@ -255,9 +317,12 @@ void flushSerial() {
 }
 
 void initInterrupt() {
-	pinMode(ACCEL_INT2_PIN, INPUT);
+	if (motion_detector) {
+		mma.clearMotionDetector();
+		pinMode(ACCEL_INT2_PIN, INPUT);
+		attachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN), accelerometerISR, CHANGE);
+	}
 	sleep_enable();
-	attachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN), accelerometerISR, CHANGE);
 	Serial.println(F("Going to sleep"));
 	delay(1000);
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -268,88 +333,25 @@ void initInterrupt() {
 
 	// wake event
 	sleep_disable();
+	power_all_enable();
+	
 }
 
 
 void accelerometerISR() {
 	sleep_disable();
 	detachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN));
+	should_sleep = false;
 	Serial.println(F("Accelerometer Interrupt"));
 
 }
 void initSensors()
 {
-	Serial.println(F("Initializing Sensors"));
-
+	Serial.println(F("Initializing Motion Detector"));
 	if (mma.begin()) {
-
+		motion_detector = true;
 	}
 	else {
 		Serial.println(F("Could not find Adafruit MMA8451 Accelerometer"));
 	}
-	/*
-	DISABLED - migrating to MMA8451
-
-	uint8_t cfg1_value = 0x5F;   // \100 hODR cycle, low power, 3 axis
-
-	// Enable the accelerometer (100Hz)
-	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A, cfg1_value);
-	// AOI interrupt enable -- position interrupt enabled on LIN1
-	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG3_A, 0x60);
-	// INT1 Configuration -- OR movement recognition, X Y Z High event
-	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_CFG_A, 0x2A);
-	// INT1 Threshold -- absolute value of movement greater than 16 milli-Gs
-	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_THS_A, 0x4F);
-	// INT1 Duration -- movement must be for more than 1 ODR cycle... maybe 10ms
-	write8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_INT1_DURATION_A, 0x01);
-
-
-	// LSM303DLHC has no WHOAMI register so read CTRL_REG1_A back to check
-	// if we are connected or not
-	uint8_t reg1_a = read8(LSM303_ADDRESS_ACCEL, LSM303_REGISTER_ACCEL_CTRL_REG1_A);
-	if (reg1_a != cfg1_value)
-	{
-		Serial.println(F("Error initializing LSM303"));
-	}
-	else {
-		Serial.println(F("Done initializing LSM303"));
-	}
-	*/
-
-
-}
-
-void write8(byte address, byte reg, byte value)
-{
-	Wire.beginTransmission(address);
-#if ARDUINO >= 100
-	Wire.write((uint8_t)reg);
-	Wire.write((uint8_t)value);
-#else
-	Wire.send(reg);
-	Wire.send(value);
-#endif
-	Wire.endTransmission();
-}
-
-byte read8(byte address, byte reg)
-{
-	byte value;
-
-	Wire.beginTransmission(address);
-#if ARDUINO >= 100
-	Wire.write((uint8_t)reg);
-#else
-	Wire.send(reg);
-#endif
-	Wire.endTransmission();
-	Wire.requestFrom(address, (byte)1);
-#if ARDUINO >= 100
-	value = Wire.read();
-#else
-	value = Wire.receive();
-#endif
-	Wire.endTransmission();
-
-	return value;
 }

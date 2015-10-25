@@ -14,6 +14,9 @@
     @section  HISTORY
 
     v1.0  - First release
+
+	modified jychuah
+	Added motion detection register constants
 */
 /**************************************************************************/
 
