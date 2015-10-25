@@ -196,8 +196,10 @@ void doSleepTimer() {
 		if (mma.motionDetected()) {				// detect motion and clear latch
 			accelerometer_interrupt = true;
 		}
-		delay(100);
-		enterSleep();
+		else {
+			delay(100);
+			enterSleep();
+		}
 	}
 	else {
 		wake_timer_expired = true;
@@ -232,13 +234,6 @@ void enterSleep(void)
 	delay(1000);
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   
 	sleep_enable();
-	/*
-	if (motion_detector) {
-		mma.clearMotionDetector();
-		delay(100);
-		pinMode(ACCEL_INT2_PIN, INPUT);
-		attachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN), accelerometerISR, LOW);
-	}*/
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 	cli();
 	sleep_bod_disable();
