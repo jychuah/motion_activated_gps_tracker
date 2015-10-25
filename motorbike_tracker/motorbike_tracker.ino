@@ -80,10 +80,6 @@ char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 #define POST_RESULT_LENGTH 30
 char postresult[POST_RESULT_LENGTH];
 
-// Motorbike Tracker Hardware Pins
-#define ACCEL_INT2_PIN 2
-
-
 // This is to handle the absence of software serial on platforms
 // like the Arduino Due. Modify this code if you are using different
 // hardware serial port, or if you are using a non-avr platform
@@ -194,7 +190,7 @@ void doSleepTimer() {
 	if (sleep_cycles < (wake_rate / 8) && !accelerometer_interrupt && !wake_timer_expired) {
 		sleep_cycles++;;
 		if (mma.motionDetected()) {				// detect motion and clear latch
-			accelerometer_interrupt = true;
+			Serial.println("Accelerometer interrupt");
 		}
 		else {
 			delay(100);
@@ -246,12 +242,7 @@ void enterSleep(void)
 	/* Re-enable the peripherals. */
 	power_all_enable();
 }
-void accelerometerISR() {
-	sleep_disable();
-	detachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN));
-	accelerometer_interrupt = true;
-	Serial.println(F("Accelerometer Interrupt"));
-}
+
 
 
 /*******************************************************************
