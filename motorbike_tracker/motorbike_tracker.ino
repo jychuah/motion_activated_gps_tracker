@@ -33,6 +33,8 @@ User specific settings
 #define FONA_RX 2
 #define FONA_TX 3
 #define FONA_RST 4
+#define FONA_MAX_ATTEMPTS 5
+#define FONA_DELAY 5000
 
 #define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
 
@@ -149,7 +151,7 @@ bool fonaInit() {
 	type = fona.type();
 
 	// Print SIM card IMEI number.
-	char imei[15] = { 0 }; // MUST use a 16 character buffer for IMEI!
+	char imei[16] = { 0 }; // MUST use a 16 character buffer for IMEI!
 	uint8_t imeiLen = fona.getIMEI(imei);
 
 	// Set IMEI in post data
@@ -159,14 +161,24 @@ bool fonaInit() {
 	strncpy(&postdata[UID_INDEX], UID, strlen(UID));
 	fona.setGPRSNetworkSettings(F(APN));
 
+	int attempts;
+
+	attempts = 0;
 	Serial.println(F("Enabling GPRS"));
-	while (!fona.enableGPRS(true)) delay(5000);
-
+	while (!fona.enableGPRS(true) && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
+	if (attempts >= FONA_MAX_ATTEMPTS) return false;
+	
+	attempts = 0;
 	Serial.println(F("Enabling GPS"));
-	while (!fona.enableGPS(true)) delay(5000);
+	while (!fona.enableGPS(true) && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
+	if (attempts >= FONA_MAX_ATTEMPTS) return false;
 
+	attempts = 0;
 	Serial.println(F("Starting sequence"));
-	while (!newSequence()) delay(5000);
+	while (!newSequence() && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
+	if (attempts >= FONA_MAX_ATTEMPTS) return false;
+
+	return true;
 }
 
 void accelerometerInit() {
