@@ -96,6 +96,17 @@ DateTime::DateTime (uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uin
     ss = sec;
 }
 
+void DateTime::setTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec) {
+	if (year >= 2000)
+		year -= 2000;
+	yOff = year;
+	m = month;
+	d = day;
+	hh = hour;
+	mm = min;
+	ss = sec;
+}
+
 DateTime::DateTime (const DateTime& copy):
   yOff(copy.yOff),
   m(copy.m),

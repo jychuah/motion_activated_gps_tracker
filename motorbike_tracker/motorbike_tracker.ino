@@ -51,6 +51,7 @@ const char TEMPERATURE[] PROGMEM = "temperature";
 const char ERROR[] PROGMEM = "ERROR";
 const char OK[] PROGMEM = "OK";
 const char GPS_TOKEN[] PROGMEM = ",";
+const char TIMESTAMP_FORMAT[] PROGMEM = "%lu";
 
 //JSON post data indexes and lengths
 #define UID_INDEX 11
@@ -102,6 +103,7 @@ Adafruit_MMA8451 mma = Adafruit_MMA8451();
 bool accelerometer_present = false;
 bool fona_present = false;
 bool hardware_rtc_present = false;
+DateTime current_time = DateTime(1970, 1, 1, 0, 0, 0);
 volatile int sleep_cycles = 0;
 volatile int f_wdt = 1;
 
@@ -135,7 +137,8 @@ void loop() {
 	if (wake_timer_expired) {
 		Serial.println(F("Wake timer expired."));
 	}
-	delay(1000);
+	setTimeStamp();
+	delay(5000);
 }
 
 /*******************************************************************
@@ -179,6 +182,9 @@ bool fonaInit() {
 	Serial.println(F("Enabling GPS"));
 	while (!fona.enableGPS(true) && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
 	if (attempts >= FONA_MAX_ATTEMPTS) return false;
+
+	fona.enableRTC(true);
+	fona.enableNTPTimeSync(true, NULL);
 
 	Serial.println(F("Fona Init Successful"));
 	return true;
@@ -327,14 +333,38 @@ Tracker Event Functions
 ********************************************************************/
 
 bool setTimeStamp() {
+	char num[4] = { 0 };
 	if (hardware_rtc_present) {
+		// get hardware RTC value
 		return true;
 	}
 	else {
 		if (fona_present) {
 			clearBuffer();
-			fona.getTime(buffer, TIMESTAMP_LENGTH + 1);
-			strncpy(&postdata[TIMESTAMP_INDEX], buffer, TIMESTAMP_LENGTH);
+			fona.getTime(buffer, BUFFER_LENGTH);
+			num[0] = buffer[1];
+			num[1] = buffer[2];
+			int year = atoi(num) + 2000;
+			num[0] = buffer[4];
+			num[1] = buffer[5];
+			int month = atoi(num);
+			num[0] = buffer[7];
+			num[1] = buffer[8];
+			int day = atoi(num);
+			num[0] = buffer[10];
+			num[1] = buffer[11];
+			int hour = atoi(num);
+			num[0] = buffer[13];
+			num[1] = buffer[14];
+			int minute = atoi(num);
+			num[0] = buffer[16];
+			num[1] = buffer[17];
+			int second = atoi(num);
+
+			current_time.setTime(year, month, day, hour, minute, second);
+			clearBuffer();
+			sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
+			setPostData(buffer, TIMESTAMP_INDEX);
 #ifdef DEBUG
 			Serial.println("Timestamp postdata:");
 			Serial.println(postdata);
@@ -342,6 +372,7 @@ bool setTimeStamp() {
 			return true;
 		}
 		else {
+			// No timestamp available
 			return false;
 		}
 	}
