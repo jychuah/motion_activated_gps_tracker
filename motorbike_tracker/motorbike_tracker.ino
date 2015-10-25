@@ -116,6 +116,7 @@ int wake_rate = 60;
 
 
 void setup() {
+	clearPostData(DATA_INDEX, DATA_LENGTH);
 	while (!Serial);
 	Serial.begin(9600);
 
@@ -380,6 +381,7 @@ bool setTimeStamp() {
 }
 
 bool logWake() {
+	setTimeStamp();
 	setEvent(WAKE_EVENT);
 #ifdef DEBUG
 	Serial.println("Wake postdata");
@@ -393,6 +395,7 @@ bool logWake() {
 
 
 bool logBoot() {
+	setTimeStamp();
 	int attempts = 0;
 	Serial.println(F("Starting sequence"));
 	while (!newSequence() && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
@@ -401,12 +404,14 @@ bool logBoot() {
 
 
 bool logBattery() {
+	setTimeStamp();
 	uint16_t vbat;
 	if (fona.getBattPercent(&vbat)) {
 		if (vbat < 10) {
 			setEvent(BATTERY);
 
 			// TODO: copy battery to data...
+			clearPostData(DATA_INDEX, DATA_LENGTH);
 
 			if (!sendPostData()) return false;
 			if (postError()) return false;
@@ -420,6 +425,7 @@ bool logBattery() {
 }
 
 bool logGPS() {
+	setTimeStamp();
 	clearBuffer();
 	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
 	clearPostData(DATA_INDEX, DATA_LENGTH);

@@ -153,6 +153,11 @@ boolean Adafruit_FONA::getBattPercent(uint16_t *p) {
   return sendParseReply(F("AT+CBC"), F("+CBC: "), p, ',', 1);
 }
 
+boolean Adafruit_FONA::getBattChargeStatus(uint16_t *s) {
+	return sendParseReply(F("AT+CBC"), F("+CBC: "), s, ',', 0);
+}
+
+
 boolean Adafruit_FONA::getADCVoltage(uint16_t *v) {
   return sendParseReply(F("AT+CADC?"), F("+CADC: 1,"), v);
 }
