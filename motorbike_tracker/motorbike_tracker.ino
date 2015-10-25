@@ -35,8 +35,6 @@ User specific settings
 #define FONA_RST 4
 
 #define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
-#define setEvent(a)		strncpy_P(&postdata[TYPE_INDEX], a, strlen(a));
-
 
 
 // Event strings
@@ -132,18 +130,11 @@ void loop() {
 	delay(1000);
 }
 
-void doSleepTimer() {
-	if (sleep_cycles < (wake_rate / 8) && !accelerometer_interrupt) {
-		sleep_cycles++;
-		Serial.print("sleep cycles ");
-		Serial.println(sleep_cycles);
-		delay(1000);
-		enterSleep();
-	}
-	else {
-		Serial.println("Sleep cycles elapsed. Waking up.");
-	}
-}
+/*******************************************************************
+
+Hardware Init Functions
+
+********************************************************************/
 
 void fonaInit() {
 	Serial.println(F("FONA basic test"));
@@ -189,6 +180,25 @@ void accelerometerInit() {
 	pinMode(2, INPUT);
 }
 
+/*******************************************************************
+
+Sleep Functions
+
+********************************************************************/
+
+
+void doSleepTimer() {
+	if (sleep_cycles < (wake_rate / 8) && !accelerometer_interrupt) {
+		sleep_cycles++;
+		Serial.print("sleep cycles ");
+		Serial.println(sleep_cycles);
+		delay(1000);
+		enterSleep();
+	}
+	else {
+		Serial.println("Sleep cycles elapsed. Waking up.");
+	}
+}
 
 void initWDT() {
 	/* Clear the reset flag. */
@@ -209,6 +219,7 @@ void initWDT() {
 ISR(WDT_vect)
 {
 }
+
 void enterSleep(void)
 {
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   
@@ -231,7 +242,19 @@ void enterSleep(void)
 	/* Re-enable the peripherals. */
 	power_all_enable();
 }
+void accelerometerISR() {
+	sleep_disable();
+	detachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN));
+	accelerometer_interrupt = true;
+	Serial.println(F("Accelerometer Interrupt"));
+}
 
+
+/*******************************************************************
+
+Post Functions
+
+********************************************************************/
 bool postError(void) {
 	return strncmp_P(postresult, ERROR, strlen(ERROR)) == 0;
 }
@@ -244,10 +267,14 @@ void clearPostData(int index, int length) {
 	memset(&postdata[index], ' ', length);
 }
 
+void setEvent(const char *event) {
+	clearPostData(TYPE_INDEX, TYPE_LENGTH); 
+	strncpy_P(&postdata[TYPE_INDEX], event, strlen(event));
+}
+
 bool sendPostData() {
 	uint16_t statuscode;
 	int16_t length;
-
 	if (!fona.HTTP_POST_start(HELPER_URL, F("application/json"), (uint8_t *)postdata, strlen(postdata), &statuscode, (uint16_t *)&length)) {
 		return false;
 	}
@@ -255,16 +282,13 @@ bool sendPostData() {
 	while (length > 0) {
 		while (fona.available()) {
 			char c = fona.read();
-
 			postresult[i] = c;
-
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
 			loop_until_bit_is_set(UCSR0A, UDRE0); // Wait until data register empty.
 			UDR0 = c;
 #else
 			Serial.write(c);
 #endif
-
 			length--;
 			i++;
 			if (!length || i >= POST_RESULT_LENGTH) break;
@@ -276,8 +300,14 @@ bool sendPostData() {
 	return true;
 }
 
+
+/*******************************************************************
+
+Tracker Event Functions
+
+********************************************************************/
+
 bool logWakeEvent() {
-	clearPostData();
 	setEvent(WAKE_EVENT);
 	if (!sendPostData()) return false;
 	return postError();
@@ -287,7 +317,6 @@ bool checkLowBattery() {
 	uint16_t vbat;
 	if (fona.getBattPercent(&vbat)) {
 		if (vbat < 10) {
-			clearPostData();
 			setEvent(BATTERY);
 
 			// TODO: copy battery to data...
@@ -325,7 +354,6 @@ bool logGPSLocation() {
 }
 
 bool newSequence() {
-	clearPostData();
 	setEvent(BOOT);
 	if (!sendPostData()) return false;
 	if (postError()) {
@@ -340,10 +368,3 @@ void flushSerial() {
 		Serial.read();
 }
 
-void accelerometerISR() {
-	sleep_disable();
-	detachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN));
-	accelerometer_interrupt = true;
-	Serial.println(F("Accelerometer Interrupt"));
-
-}
