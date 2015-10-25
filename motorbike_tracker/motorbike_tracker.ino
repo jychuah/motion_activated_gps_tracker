@@ -61,13 +61,15 @@ const char TEMPERATURE_DATA_FORMAT[] PROGMEM = "%.2f";
 #define IMEI_INDEX 60
 #define SEQUENCE_INDEX 92
 #define LOCATION_INDEX 129
-#define TYPE_INDEX 166
-#define DATA_INDEX 195
+#define TIMESTAMP_INDEX 171
+#define TYPE_INDEX 194
+#define DATA_INDEX 223
 
 #define UID_LENGTH 36
 #define IMEI_LENGTH 15
 #define SEQUENCE_LENGTH 20
 #define LOCATION_LENGTH 24
+#define TIMESTAMP_LENGTH 10
 #define TYPE_LENGTH 17
 #define DATA_LENGTH 40
 
@@ -76,6 +78,7 @@ char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 					"\"imei\" : \"012345678901234\", "
 					"\"sequence\" : \"-K1B0_C2_tb5uNlFeutR\", "
 					"\"location\" : \"-180.123456, -180.123456\", "
+					"\"timestamp\" : \"1444091176\", "
 					"\"type\" : \"event_type_string\","
 					"\"data\" : \"01234567890123456789012345678901234567890123456789\" }";
 
@@ -123,7 +126,7 @@ void setup() {
 
 void loop() {
 	doSleepTimer();
-	if (accelerometer_interrupt) {
+	if (accelerometer_present && accelerometer_interrupt) {
 		Serial.println(F("Accelerometer interrupt!!!!"));
 	}
 	if (wake_timer_expired) {
