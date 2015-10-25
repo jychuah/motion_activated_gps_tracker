@@ -114,7 +114,6 @@ bool accelerometer_interrupt = false;
 bool wake_timer_expired = false;
 int wake_rate = 60;
 
-
 void setup() {
 	clearPostData(DATA_INDEX, DATA_LENGTH);
 	while (!Serial);
@@ -122,6 +121,12 @@ void setup() {
 
 	fona_present = fonaInit();
 	accelerometer_present = accelerometerInit();
+
+	uint16_t chargeStatus = -1;
+	fona.getBattChargeStatus(&chargeStatus);
+	if (chargeStatus == 0) {
+		Serial.println(F("Fona battery is Charging"));
+	}
 #ifdef SLEEP_ENABLED
 	initWDT();
 	enterSleep();
@@ -138,8 +143,6 @@ void loop() {
 	if (wake_timer_expired) {
 		Serial.println(F("Wake timer expired."));
 	}
-	setTimeStamp();
-	delay(5000);
 }
 
 /*******************************************************************
