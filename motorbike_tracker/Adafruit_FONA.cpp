@@ -115,6 +115,12 @@ boolean Adafruit_FONA::setBaudrate(uint16_t baud) {
   return sendCheckReply(F("AT+IPREX="), baud, F("OK"));
 }
 
+/******* Power Down ********/
+boolean Adafruit_FONA::powerDown() {
+	uint16_t mode = 1;
+	return sendCheckReply(F("AT+CPOWD="), mode, F("OK"));
+}
+
 /********* Real Time Clock ********************************************/
 
 boolean Adafruit_FONA::readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t *hr, uint8_t *min, uint8_t *sec) {

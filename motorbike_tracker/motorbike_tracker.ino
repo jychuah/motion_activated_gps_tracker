@@ -30,12 +30,15 @@ User specific settings
 #define		IMEI				"865067020757418"
 /**************************************************************************************/
 #define DEBUG true
+#define SLEEP_ENABLED true
 
 #define FONA_RX 2
 #define FONA_TX 3
 #define FONA_RST 4
 #define FONA_MAX_ATTEMPTS 5
 #define FONA_DELAY 5000
+#define FONA_KEY_PIN 8
+#define FONA_POWER_PIN 7
 
 #define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
 
@@ -51,7 +54,10 @@ const char TEMPERATURE[] PROGMEM = "temperature";
 const char ERROR[] PROGMEM = "ERROR";
 const char OK[] PROGMEM = "OK";
 const char GPS_TOKEN[] PROGMEM = ",";
+
+// Format strings
 const char TIMESTAMP_FORMAT[] PROGMEM = "%lu";
+const char BATTERY_FORMAT[] PROGMEM = "%u";
 
 //JSON post data indexes and lengths
 #define UID_INDEX 11
@@ -110,11 +116,15 @@ volatile int f_wdt = 1;
 uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
 uint8_t type;
-bool accelerometer_interrupt = false;
-bool wake_timer_expired = false;
-int wake_rate = 60;
+volatile bool accelerometer_interrupt = false;
+volatile bool wake_timer_expired = false;
+volatile bool should_sleep = true;
+int wake_rate = 32;
 
 void setup() {
+	pinMode(FONA_KEY_PIN, OUTPUT);
+	pinMode(FONA_POWER_PIN, INPUT);
+	digitalWrite(FONA_KEY_PIN, LOW);
 	clearPostData(DATA_INDEX, DATA_LENGTH);
 	while (!Serial);
 	Serial.begin(9600);
@@ -127,9 +137,10 @@ void setup() {
 	if (chargeStatus == 0) {
 		Serial.println(F("Fona battery is Charging"));
 	}
+
 #ifdef SLEEP_ENABLED
 	initWDT();
-	enterSleep();
+	setSleep();
 #endif
 }
 
@@ -142,7 +153,10 @@ void loop() {
 	}
 	if (wake_timer_expired) {
 		Serial.println(F("Wake timer expired."));
+		wake_timer_expired = false;
 	}
+	Serial.println("Loop");
+	delay(1000);
 }
 
 /*******************************************************************
@@ -194,6 +208,32 @@ bool fonaInit() {
 	return true;
 }
 
+bool fona_powered_down() {
+	return (digitalRead(FONA_POWER_PIN) == LOW);
+}
+
+bool fonaRestart() {
+	int attempts = 0;
+	while (fona_powered_down() && attempts < FONA_MAX_ATTEMPTS) {
+		Serial.println(F("Attempting key"));
+		digitalWrite(FONA_KEY_PIN, LOW);
+		delay(FONA_DELAY / 2 + attempts * 1000);
+		digitalWrite(FONA_KEY_PIN, HIGH);
+		Serial.println(F("key attempt finished"));
+		attempts++;
+	}
+	if (attempts >= FONA_MAX_ATTEMPTS) {
+		return false;
+	}
+
+	// Fona MUST reinitialize
+	while (!fonaInit()) { 
+		Serial.println(F("Couldn't re-initialize Fona!"));
+		delay(1000); 
+	}
+	return true;
+}
+
 bool accelerometerInit() {
 	if (!mma.begin()) {
 		Serial.println(F("Coudln't initialize MMA8451 Accelerometer"));
@@ -211,21 +251,34 @@ Sleep Functions
 
 ********************************************************************/
 
-
 void doSleepTimer() {
-	if (sleep_cycles < (wake_rate / 8) && !accelerometer_interrupt && !wake_timer_expired) {
-		sleep_cycles++;;
-		if (mma.motionDetected()) {				// detect motion and clear latch
-			accelerometer_interrupt = true;
-		}
-		else {
-			delay(100);
-			enterSleep();
-		}
+	if (sleep_cycles < (wake_rate / 8) && should_sleep) {
+		sleep_cycles++;
+		enterSleep();
 	}
-	else {
+	if (sleep_cycles >= (wake_rate / 8) && should_sleep) {
+		// sleep expired
+		Serial.begin(9600);
+		Serial.println(F("Sleep expired"));
+		should_sleep = false;
 		wake_timer_expired = true;
+		fonaRestart();
 	}
+	if (accelerometer_present && mma.motionDetected() && should_sleep) {				// detect motion and clear latch
+		Serial.begin(9600);
+		Serial.println(F("Motion detected"));
+		should_sleep = false;
+		accelerometer_interrupt = true;
+		fonaRestart();
+	}
+}
+
+void setSleep() {
+	mma.motionDetected();
+	accelerometer_interrupt = false;
+	wake_timer_expired = false;
+	sleep_cycles = 0;
+	should_sleep = true;
 }
 
 void initWDT() {
@@ -252,8 +305,14 @@ ISR(WDT_vect)
 
 void enterSleep(void)
 {
-	Serial.println(F("Entering sleep"));
-	delay(1000);
+	if (!fona_powered_down()) {
+		Serial.begin(9600);
+		Serial.println(F("Powering down FONA"));
+		digitalWrite(FONA_KEY_PIN, HIGH);
+		fona.powerDown();
+		delay(500);
+		Serial.end();
+	}
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   
 	sleep_enable();
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -268,7 +327,6 @@ void enterSleep(void)
 	/* Re-enable the peripherals. */
 	power_all_enable();
 }
-
 
 
 /*******************************************************************
@@ -410,13 +468,19 @@ bool logBattery() {
 	setTimeStamp();
 	uint16_t vbat;
 	if (fona.getBattPercent(&vbat)) {
-		if (vbat < 10) {
+		if (vbat < 20) {
 			setEvent(BATTERY);
-
-			// TODO: copy battery to data...
+			clearBuffer();
+			sprintf_P(buffer, BATTERY_FORMAT, vbat);
 			clearPostData(DATA_INDEX, DATA_LENGTH);
-
+			setPostData(buffer, DATA_INDEX);
+#ifdef DEBUG
+			Serial.println(F("Battery postdata:"));
+			Serial.println(postdata);
+#endif
+#ifndef DEBUG
 			if (!sendPostData()) return false;
+#endif
 			if (postError()) return false;
 		}
 	}
