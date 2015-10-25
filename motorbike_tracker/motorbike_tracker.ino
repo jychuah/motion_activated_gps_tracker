@@ -41,7 +41,7 @@ User specific settings
 
 // Event strings
 const char BATTERY[] PROGMEM = "battery";
-const char PROVISION PROGMEM = "provision";
+const char PROVISION[] PROGMEM = "provision";
 const char GPS[] PROGMEM = "gps";
 const char WAKE_EVENT[] PROGMEM = "wake";
 const char BOOT[] PROGMEM = "boot";
@@ -50,7 +50,13 @@ const char TEMPERATURE[] PROGMEM = "temperature";
 const char ERROR[] PROGMEM = "ERROR";
 const char OK[] PROGMEM = "OK";
 
+// Format Strings
+const char LOCATION_FORMAT[] PROGMEM = "%.6f, %.6f";
+const char GPS_DATA_FORMAT[] PROGMEM = "%.2f, %.2f, %.2f";
+const char BATTERY_DATA_FORMAT[] PROGMEM = "%i";
+const char TEMPERATURE_DATA_FORMAT[] PROGMEM = "%.2f";
 
+//JSON post data indexes and lengths
 #define UID_INDEX 11
 #define IMEI_INDEX 60
 #define SEQUENCE_INDEX 92
@@ -63,14 +69,15 @@ const char OK[] PROGMEM = "OK";
 #define SEQUENCE_LENGTH 20
 #define LOCATION_LENGTH 24
 #define TYPE_LENGTH 17
-#define DATA_LENGTH 20
+#define DATA_LENGTH 40
 
+//JSON post buffer
 char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 					"\"imei\" : \"012345678901234\", "
 					"\"sequence\" : \"-K1B0_C2_tb5uNlFeutR\", "
 					"\"location\" : \"-180.123456, -180.123456\", "
 					"\"type\" : \"event_type_string\","
-					"\"data\" : \"012345678901234567890123456789\" }";
+					"\"data\" : \"01234567890123456789012345678901234567890123456789\" }";
 
 #define POST_RESULT_LENGTH 30
 char postresult[POST_RESULT_LENGTH];
@@ -297,9 +304,19 @@ bool checkLowBattery() {
 }
 
 bool logGPSLocation() {
-	clearPostData();
+	float lat = 0;
+	float lng = 0;
+	float speed_kph = 0;
+	float heading = 0;
+	float altitude = 0;
+	if (!fona.getGPS(&lat, &lng, &speed_kph, &heading, &altitude)) {
+		return false;
+	}
+	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
+	clearPostData(DATA_INDEX, DATA_LENGTH);
 	setEvent(GPS);
-	fona.getGPS(0, &postdata[DATA_INDEX], 120);
+	sprintf_P(&postdata[LOCATION_INDEX], LOCATION_FORMAT, lat, lng);
+	sprintf_P(&postdata[DATA_INDEX], GPS_DATA_FORMAT, speed_kph, heading, altitude);
 	if (!sendPostData()) return false;
 	if (postError()) {
 		return false;
