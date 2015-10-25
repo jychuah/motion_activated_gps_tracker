@@ -20,7 +20,7 @@
 #if (ARDUINO >= 100)
   #include "Arduino.h"
   #ifndef __SAM3X8E__  // Arduino Due doesn't support SoftwareSerial
-    #include "SoftwareSerial.h"
+    #include <SoftwareSerial.h>
   #endif
 #else
   #include "WProgram.h"
@@ -60,7 +60,13 @@
 
 #define FONA_HTTP_GET   0
 #define FONA_HTTP_POST  1
-#define FONA_HTTP_HEAD  2 
+#define FONA_HTTP_HEAD  2
+
+#define FONA_CALL_READY 0
+#define FONA_CALL_FAILED 1
+#define FONA_CALL_UNKNOWN 2
+#define FONA_CALL_RINGING 3
+#define FONA_CALL_INPROGRESS 4
 
 class Adafruit_FONA : public Stream {
  public:
@@ -75,7 +81,7 @@ class Adafruit_FONA : public Stream {
   int peek(void);
   void flush();
 
-  // FONE 3G requirements
+  // FONA 3G requirements
   boolean setBaudrate(uint16_t baud);
 
   // RTC
@@ -119,6 +125,7 @@ class Adafruit_FONA : public Stream {
   boolean sendSMS(char *smsaddr, char *smsmsg);
   boolean deleteSMS(uint8_t i);
   boolean getSMSSender(uint8_t i, char *sender, int senderlen);
+  boolean sendUSSD(char *ussdmsg, char *ussdbuff, uint16_t maxlen, uint16_t *readlen);
 
   // Time
   boolean enableNetworkTimeSync(boolean onoff);
@@ -175,6 +182,7 @@ class Adafruit_FONA : public Stream {
 
   // Phone calls
   boolean callPhone(char *phonenum);
+  uint8_t getCallStatus(void);
   boolean hangUp(void);
   boolean pickUp(void);
   boolean callerIdNotification(boolean enable, uint8_t interrupt = 0);
@@ -237,7 +245,7 @@ class Adafruit_FONA_3G : public Adafruit_FONA {
 
  public:
   Adafruit_FONA_3G (int8_t r) : Adafruit_FONA(r) { _type = FONA3G_A; }
-    
+
     boolean getBattVoltage(uint16_t *v);
     boolean playToolkitTone(uint8_t t, uint16_t len);
     boolean hangUp(void);
@@ -248,10 +256,10 @@ class Adafruit_FONA_3G : public Adafruit_FONA {
  protected:
     boolean parseReply(const __FlashStringHelper *toreply,
 		       float *f, char divider, uint8_t index);
-    
+
     boolean sendParseReply(const __FlashStringHelper *tosend,
 			   const __FlashStringHelper *toreply,
-			   float *f, char divider = ',', uint8_t index=0);  
+			   float *f, char divider = ',', uint8_t index=0);
 };
 
 #endif

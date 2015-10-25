@@ -16,6 +16,7 @@ BSD license, all text above must be included in any redistribution
 #include <Wire.h>
 #include "Adafruit_FONA.h"
 #include "Adafruit_MMA8451.h"
+#include "RTClib.h"
 #include <avr/sleep.h>
 #include <avr/interrupt.h>
 #include <avr/wdt.h>
@@ -49,12 +50,7 @@ const char SLEEP[] PROGMEM = "sleep";
 const char TEMPERATURE[] PROGMEM = "temperature";
 const char ERROR[] PROGMEM = "ERROR";
 const char OK[] PROGMEM = "OK";
-
-// Format Strings
-const char LOCATION_FORMAT[] PROGMEM = "%.6f, %.6f";
-const char GPS_DATA_FORMAT[] PROGMEM = "%.2f, %.2f, %.2f";
-const char BATTERY_DATA_FORMAT[] PROGMEM = "%i";
-const char TEMPERATURE_DATA_FORMAT[] PROGMEM = "%.2f";
+const char GPS_TOKEN[] PROGMEM = ",";
 
 //JSON post data indexes and lengths
 #define UID_INDEX 11
@@ -80,10 +76,12 @@ char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 					"\"location\" : \"-180.123456, -180.123456\", "
 					"\"timestamp\" : \"1444091176\", "
 					"\"type\" : \"event_type_string\","
-					"\"data\" : \"01234567890123456789012345678901234567890123456789\" }";
+					"\"data\" : \"0123456789012345678901234567890123456789\" }";
 
-#define POST_RESULT_LENGTH 30
-char postresult[POST_RESULT_LENGTH];
+#define BUFFER_LENGTH 120
+char buffer[BUFFER_LENGTH];
+
+#define clearBuffer()		memset(buffer, 0, BUFFER_LENGTH)
 
 // This is to handle the absence of software serial on platforms
 // like the Arduino Due. Modify this code if you are using different
@@ -103,6 +101,7 @@ Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
 bool accelerometer_present = false;
 bool fona_present = false;
+bool hardware_rtc_present = false;
 volatile int sleep_cycles = 0;
 volatile int f_wdt = 1;
 
@@ -120,12 +119,16 @@ void setup() {
 
 	fona_present = fonaInit();
 	accelerometer_present = accelerometerInit();
+#ifdef SLEEP_ENABLED
 	initWDT();
 	enterSleep();
+#endif
 }
 
 void loop() {
+#ifdef SLEEP_ENABLED
 	doSleepTimer();
+#endif
 	if (accelerometer_present && accelerometer_interrupt) {
 		Serial.println(F("Accelerometer interrupt!!!!"));
 	}
@@ -155,11 +158,11 @@ bool fonaInit() {
 	type = fona.type();
 
 	// Print SIM card IMEI number.
-	char imei[16] = { 0 }; // MUST use a 16 character buffer for IMEI!
-	uint8_t imeiLen = fona.getIMEI(imei);
+	clearBuffer();
+	uint8_t imeiLen = fona.getIMEI(buffer);
 
 	// Set IMEI in post data
-	strncpy(&postdata[IMEI_INDEX], imei, 15);
+	strncpy(&postdata[IMEI_INDEX], buffer, 15);
 
 	// Set UID in post data
 	strncpy(&postdata[UID_INDEX], UID, strlen(UID));
@@ -177,11 +180,7 @@ bool fonaInit() {
 	while (!fona.enableGPS(true) && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
 	if (attempts >= FONA_MAX_ATTEMPTS) return false;
 
-	attempts = 0;
-	Serial.println(F("Starting sequence"));
-	while (!newSequence() && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
-	if (attempts >= FONA_MAX_ATTEMPTS) return false;
-
+	Serial.println(F("Fona Init Successful"));
 	return true;
 }
 
@@ -268,10 +267,17 @@ Post Functions
 
 ********************************************************************/
 bool postError(void) {
-	return strncmp_P(postresult, ERROR, strlen(ERROR)) == 0;
+	return strncmp_P(buffer, ERROR, strlen(ERROR)) == 0;
+}
+bool postOK(void) {
+	return strncmp_P(buffer, OK, strlen(OK)) == 0;
 }
 
 void setPostData(char *data, int index) {
+	int length = strlen(data);
+	if (data[strlen(data)] == 0) {
+		length = length - 1;
+	}
 	strncpy(&postdata[index], data, strlen(data));
 }
 
@@ -281,10 +287,12 @@ void clearPostData(int index, int length) {
 
 void setEvent(const char *event) {
 	clearPostData(TYPE_INDEX, TYPE_LENGTH); 
-	strncpy_P(&postdata[TYPE_INDEX], event, strlen(event));
+	strncpy_P(&postdata[TYPE_INDEX], event, strlen_P(event));
 }
 
 bool sendPostData() {
+	clearBuffer();
+
 	uint16_t statuscode;
 	int16_t length;
 	if (!fona.HTTP_POST_start(HELPER_URL, F("application/json"), (uint8_t *)postdata, strlen(postdata), &statuscode, (uint16_t *)&length)) {
@@ -294,7 +302,7 @@ bool sendPostData() {
 	while (length > 0) {
 		while (fona.available()) {
 			char c = fona.read();
-			postresult[i] = c;
+			buffer[i] = c;
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega168__)
 			loop_until_bit_is_set(UCSR0A, UDRE0); // Wait until data register empty.
 			UDR0 = c;
@@ -303,10 +311,9 @@ bool sendPostData() {
 #endif
 			length--;
 			i++;
-			if (!length || i >= POST_RESULT_LENGTH) break;
+			if (!length || i >= BUFFER_LENGTH) break;
 		}
 	}
-	memset(&postresult[i], 0, POST_RESULT_LENGTH - i);
 	Serial.println(F("\n"));
 	fona.HTTP_POST_end();
 	return true;
@@ -319,13 +326,50 @@ Tracker Event Functions
 
 ********************************************************************/
 
-bool logWakeEvent() {
+bool setTimeStamp() {
+	if (hardware_rtc_present) {
+		return true;
+	}
+	else {
+		if (fona_present) {
+			clearBuffer();
+			fona.getTime(buffer, TIMESTAMP_LENGTH + 1);
+			strncpy(&postdata[TIMESTAMP_INDEX], buffer, TIMESTAMP_LENGTH);
+#ifdef DEBUG
+			Serial.println("Timestamp postdata:");
+			Serial.println(postdata);
+#endif		
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	return false;
+}
+
+bool logWake() {
 	setEvent(WAKE_EVENT);
+#ifdef DEBUG
+	Serial.println("Wake postdata");
+	Serial.println(postdata);
+#endif
+#ifndef DEBUG
 	if (!sendPostData()) return false;
+#endif
 	return postError();
 }
 
-bool checkLowBattery() {
+
+bool logBoot() {
+	int attempts = 0;
+	Serial.println(F("Starting sequence"));
+	while (!newSequence() && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
+	if (attempts >= FONA_MAX_ATTEMPTS) return false;
+}
+
+
+bool logBattery() {
 	uint16_t vbat;
 	if (fona.getBattPercent(&vbat)) {
 		if (vbat < 10) {
@@ -344,21 +388,58 @@ bool checkLowBattery() {
 	return true;
 }
 
-bool logGPSLocation() {
-	float lat = 0;
-	float lng = 0;
-	float speed_kph = 0;
-	float heading = 0;
-	float altitude = 0;
-	if (!fona.getGPS(&lat, &lng, &speed_kph, &heading, &altitude)) {
-		return false;
-	}
+bool logGPS() {
+	clearBuffer();
 	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
 	clearPostData(DATA_INDEX, DATA_LENGTH);
+
+	char num[16] = { 0 };
+	fona.getGPS(32, buffer, BUFFER_LENGTH);
+
+	char * token = strtok_P(buffer, GPS_TOKEN);
+	if (token[0] == '0') {
+		Serial.println(F("No GPS lock"));
+		return false;
+	}
+	token = strtok_P(NULL, GPS_TOKEN);		// check lock token
+	if (token[0] == '0') {
+		Serial.println(F("No GPS lock"));
+		return false;
+	}
+
+	token = strtok_P(NULL, GPS_TOKEN);		// we are now at date
+	token = strtok_P(NULL, GPS_TOKEN);		// latitude
+	setPostData(token, LOCATION_INDEX);
+	postdata[LOCATION_INDEX + strlen(token)] = ',';
+	int dataIndex = LOCATION_INDEX + strlen(token) + 1;
+
+	token = strtok_P(NULL, GPS_TOKEN);		// longitude
+	setPostData(token, dataIndex);
+
+	token = strtok_P(NULL, GPS_TOKEN);		// altitude
+	setPostData(token, DATA_INDEX);
+	dataIndex = DATA_INDEX + strlen(token);
+	postdata[dataIndex] = ',';
+	dataIndex++;
+
+	token = strtok_P(NULL, GPS_TOKEN);		// speed (?)
+	setPostData(token, dataIndex);
+	dataIndex += strlen(token);
+	postdata[dataIndex] = ',';
+	dataIndex++;
+
+	token = strtok_P(NULL, GPS_TOKEN);		// heading (?)
+	setPostData(token, dataIndex);
+
+
 	setEvent(GPS);
-	sprintf_P(&postdata[LOCATION_INDEX], LOCATION_FORMAT, lat, lng);
-	sprintf_P(&postdata[DATA_INDEX], GPS_DATA_FORMAT, speed_kph, heading, altitude);
+#ifdef DEBUG
+	Serial.println("GPS postdata: ");
+	Serial.println(postdata);
+#endif
+#ifndef DEBUG
 	if (!sendPostData()) return false;
+#endif
 	if (postError()) {
 		return false;
 	}
@@ -366,13 +447,27 @@ bool logGPSLocation() {
 }
 
 bool newSequence() {
-	setEvent(BOOT);
+	clearBuffer();
+#ifdef DEBUG
+	Serial.println("Boot postdata:");
+#endif
+#ifndef DEBUG
 	if (!sendPostData()) return false;
+#endif
 	if (postError()) {
 		return false;
 	}
-	strncpy(&postdata[SEQUENCE_INDEX], postresult, strlen(postresult));
-	return true;
+#ifdef DEBUG
+	Serial.println("Boot response:");
+	Serial.println(postdata);
+#endif
+	setEvent(BOOT);
+	strncpy(&postdata[SEQUENCE_INDEX], buffer, strlen(buffer));
+#ifdef DEBUG
+	Serial.println("Boot postdata after response:");
+	Serial.println(postdata);
+#endif
+	return strlen(buffer) == SEQUENCE_LENGTH;
 }
 
 void flushSerial() {
