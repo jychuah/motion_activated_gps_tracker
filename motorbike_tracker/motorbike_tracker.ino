@@ -136,28 +136,42 @@ void setup() {
 	}
 	pinMode(2, INPUT);
 	initWDT();
+	enterSleep();
 }
 
 uint8_t last = 0xFF;
 
-bool should_sleep = true;
+bool accelerometer_interrupt = false;
 
 void loop() {
+	/*
 	if (f_wdt == 1)
 	{
-		/* Toggle the LED */
-		Serial.println("Wake");
-		delay(1000);
+		Serial.println("Do stuff that takes 10 seconds");
+		delay(10000);
+		Serial.println("Done doing stuff");
 
-		/* Don't forget to clear the flag. */
 		f_wdt = 0;
 
-		/* Re-enter sleep mode. */
 		if (should_sleep) {
 			enterSleep();
 		}
 	}
+	*/
 
+	if (sleep_cycles < 3 && !accelerometer_interrupt) {
+		sleep_cycles++;
+		Serial.print("sleep cycles ");
+		Serial.println(sleep_cycles);
+		delay(1000);
+		enterSleep();
+	}
+	else {
+		Serial.println("Sleep cycles elapsed. Waking up.");
+	}
+	if (accelerometer_interrupt) {
+		Serial.println("Accelerometer interrupt!!!!");
+	}
 	Serial.println("Loop");
 	delay(1000);
 
@@ -191,25 +205,22 @@ void initWDT() {
 
 ISR(WDT_vect)
 {
-	if (f_wdt == 0)
-	{
-		f_wdt = 1;
-	}
-	else
-	{
-		Serial.println("WDT Overrun!!!");
-	}
 }
 void enterSleep(void)
 {
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   /* EDIT: could also use SLEEP_MODE_PWR_DOWN for lowest power consumption. */
 	sleep_enable();
 	if (motion_detector) {
-		Serial.println(mma.clearMotionDetector());
-		delay(1000);
+		mma.clearMotionDetector();
+		delay(100);
 		pinMode(ACCEL_INT2_PIN, INPUT);
 		attachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN), accelerometerISR, LOW);
 	}
+	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+	cli();
+	sleep_bod_disable();
+	sei();
+	sleep_cpu();
 	/* Now enter sleep mode. */
 	sleep_mode();
 
@@ -316,32 +327,10 @@ void flushSerial() {
 		Serial.read();
 }
 
-void initInterrupt() {
-	if (motion_detector) {
-		mma.clearMotionDetector();
-		pinMode(ACCEL_INT2_PIN, INPUT);
-		attachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN), accelerometerISR, CHANGE);
-	}
-	sleep_enable();
-	Serial.println(F("Going to sleep"));
-	delay(1000);
-	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-	cli();
-	sleep_bod_disable();
-	sei();
-	sleep_cpu();
-
-	// wake event
-	sleep_disable();
-	power_all_enable();
-	
-}
-
-
 void accelerometerISR() {
 	sleep_disable();
 	detachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN));
-	should_sleep = false;
+	accelerometer_interrupt = true;
 	Serial.println(F("Accelerometer Interrupt"));
 
 }
