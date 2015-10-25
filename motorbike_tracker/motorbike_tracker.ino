@@ -108,6 +108,7 @@ uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
 uint8_t type;
 bool accelerometer_interrupt = false;
+bool wake_timer_expired = false;
 int wake_rate = 60;
 
 
@@ -118,14 +119,16 @@ void setup() {
 	fonaInit();
 	accelerometerInit();
 	initWDT();
-	delay(1000);
 	enterSleep();
 }
 
 void loop() {
-//	doSleepTimer();
+	doSleepTimer();
 	if (accelerometer_interrupt) {
-		Serial.println("Accelerometer interrupt!!!!");
+		Serial.println(F("Accelerometer interrupt!!!!"));
+	}
+	if (wake_timer_expired) {
+		Serial.println(F("Wake timer expired."));
 	}
 	delay(1000);
 }
@@ -136,7 +139,7 @@ Hardware Init Functions
 
 ********************************************************************/
 
-void fonaInit() {
+bool fonaInit() {
 	Serial.println(F("FONA basic test"));
 	Serial.println(F("Initializing....(May take 3 seconds)"));
 
@@ -144,7 +147,7 @@ void fonaInit() {
 
 	if (!fona.begin(*fonaSerial)) {
 		Serial.println(F("Couldn't find FONA"));
-		while (1);
+		return false;
 	}
 
 	type = fona.type();
@@ -188,19 +191,22 @@ Sleep Functions
 
 
 void doSleepTimer() {
-	if (sleep_cycles < (wake_rate / 8) && !accelerometer_interrupt) {
-		sleep_cycles++;
-		Serial.print("sleep cycles ");
-		Serial.println(sleep_cycles);
-		delay(1000);
+	if (sleep_cycles < (wake_rate / 8) && !accelerometer_interrupt && !wake_timer_expired) {
+		sleep_cycles++;;
+		if (mma.motionDetected()) {				// detect motion and clear latch
+			accelerometer_interrupt = true;
+		}
+		delay(100);
 		enterSleep();
 	}
 	else {
-		Serial.println("Sleep cycles elapsed. Waking up.");
+		wake_timer_expired = true;
 	}
 }
 
 void initWDT() {
+	Serial.println(F("Initializing Watchdog Timer"));
+	delay(1000);
 	/* Clear the reset flag. */
 	MCUSR &= ~(1 << WDRF);
 
@@ -222,14 +228,17 @@ ISR(WDT_vect)
 
 void enterSleep(void)
 {
+	Serial.println(F("Entering sleep"));
+	delay(1000);
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   
 	sleep_enable();
+	/*
 	if (motion_detector) {
 		mma.clearMotionDetector();
 		delay(100);
 		pinMode(ACCEL_INT2_PIN, INPUT);
 		attachInterrupt(digitalPinToInterrupt(ACCEL_INT2_PIN), accelerometerISR, LOW);
-	}
+	}*/
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 	cli();
 	sleep_bod_disable();

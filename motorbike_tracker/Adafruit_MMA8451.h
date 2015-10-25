@@ -103,7 +103,7 @@ class Adafruit_MMA8451
   bool begin(uint8_t addr = MMA8451_DEFAULT_ADDRESS);
 
   void read(void);
-  uint8_t clearMotionDetector();
+  bool motionDetected();
 
 #ifdef USE_SENSOR
   bool getEvent(sensors_event_t *event);

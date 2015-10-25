@@ -133,6 +133,6 @@ bool Adafruit_MMA8451::begin(uint8_t i2caddr) {
 }
 
 
-uint8_t Adafruit_MMA8451::clearMotionDetector() {
-	return readRegister8(MMA8451_FF_MT_SRC);
+bool Adafruit_MMA8451::motionDetected() {
+	return readRegister8(MMA8451_FF_MT_SRC) > 128;
 }
