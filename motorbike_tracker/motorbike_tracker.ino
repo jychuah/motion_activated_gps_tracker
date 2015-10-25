@@ -35,33 +35,49 @@ User specific settings
 #define FONA_RST 4
 
 #define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
-#define setEvent(a)		strncpy_P(&postdata[EVENT_INDEX], a, strlen(a));
-#define postError()		strncmp_P(postresult, ERROR, strlen(ERROR)) == 0
+#define setEvent(a)		strncpy_P(&postdata[TYPE_INDEX], a, strlen(a));
 
 
 
 // Event strings
-const char BATTERY[] PROGMEM = "Battery";
-const char NEW_SEQUENCE[] PROGMEM = "NEW SEQUENCE";
-const char GPS_LOCATION[] PROGMEM = "GPS Location";
-const char WAKE_EVENT[] PROGMEM = "TRACKER WAKE";
+const char BATTERY[] PROGMEM = "battery";
+const char PROVISION PROGMEM = "provision";
+const char GPS[] PROGMEM = "gps";
+const char WAKE_EVENT[] PROGMEM = "wake";
+const char BOOT[] PROGMEM = "boot";
+const char SLEEP[] PROGMEM = "sleep";
+const char TEMPERATURE[] PROGMEM = "temperature";
 const char ERROR[] PROGMEM = "ERROR";
+const char OK[] PROGMEM = "OK";
 
 
 #define UID_INDEX 11
 #define IMEI_INDEX 60
-#define EVENT_INDEX 89
-#define DATA_INDEX 118
-#define SEQUENCE_INDEX 255
-#define ACCEL_INT2_PIN 2
+#define SEQUENCE_INDEX 92
+#define LOCATION_INDEX 129
+#define TYPE_INDEX 166
+#define DATA_INDEX 195
 
-char postdata[] = "{ \"uid\" : \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\", "
-"\"imei\" : \"xxxxxxxxxxxxxxx\", \"type\" : \"event_type_string\","
-"\"data\" : \"012345678911234567892123456789312345678941234567895123456789612345678971234567898123456789912345678901234567891123456789\""
-", \"sequence\" : \"                        \" }";
+#define UID_LENGTH 36
+#define IMEI_LENGTH 15
+#define SEQUENCE_LENGTH 20
+#define LOCATION_LENGTH 24
+#define TYPE_LENGTH 17
+#define DATA_LENGTH 20
+
+char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
+					"\"imei\" : \"012345678901234\", "
+					"\"sequence\" : \"-K1B0_C2_tb5uNlFeutR\", "
+					"\"location\" : \"-180.123456, -180.123456\", "
+					"\"type\" : \"event_type_string\","
+					"\"data\" : \"012345678901234567890123456789\" }";
 
 #define POST_RESULT_LENGTH 30
 char postresult[POST_RESULT_LENGTH];
+
+// Motorbike Tracker Hardware Pins
+#define ACCEL_INT2_PIN 2
+
 
 // This is to handle the absence of software serial on platforms
 // like the Arduino Due. Modify this code if you are using different
@@ -86,80 +102,31 @@ volatile int f_wdt = 1;
 uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
 uint8_t type;
+bool accelerometer_interrupt = false;
+int wake_rate = 60;
+
 
 void setup() {
 	while (!Serial);
-
 	Serial.begin(9600);
-	Serial.println(F("FONA basic test"));
-	Serial.println(F("Initializing....(May take 3 seconds)"));
-	/*
-	fonaSerial->begin(9600);
-	
-	if (!fona.begin(*fonaSerial)) {
-		Serial.println(F("Couldn't find FONA"));
-		while (1);
-	}
-	*/
-//	type = fona.type();
 
-	// Print SIM card IMEI number.
-	char imei[15] = { 0 }; // MUST use a 16 character buffer for IMEI!
-//	uint8_t imeiLen = fona.getIMEI(imei);
-
-	// Set IMEI in post data
-	strncpy(&postdata[IMEI_INDEX], imei, 15);
-
-	// Set UID in post data
-	strncpy(&postdata[UID_INDEX], UID, strlen(UID));
-	clearPostData();
-
-	initSensors();
-
-//	fona.setGPRSNetworkSettings(F(APN));
-
-	Serial.println(F("Enabling GPRS"));
-//	while (!fona.enableGPRS(true)) delay(5000);
-
-	Serial.println(F("Enabling GPS"));
-//	while (!fona.enableGPS(true)) delay(5000);
-
-	Serial.println(F("Starting sequence"));
-//	while (!newSequence()) delay(5000);
-
-	//logWakeEvent();
-
-	if (!mma.begin()) {
-		Serial.println("Coudln't init accel");
-	} else {
-		Serial.println("MMA ok");
-	}
-	pinMode(2, INPUT);
+	fonaInit();
+	accelerometerInit();
 	initWDT();
+	delay(1000);
 	enterSleep();
 }
 
-uint8_t last = 0xFF;
-
-bool accelerometer_interrupt = false;
-
 void loop() {
-	/*
-	if (f_wdt == 1)
-	{
-		Serial.println("Do stuff that takes 10 seconds");
-		delay(10000);
-		Serial.println("Done doing stuff");
-
-		f_wdt = 0;
-
-		if (should_sleep) {
-			enterSleep();
-		}
+//	doSleepTimer();
+	if (accelerometer_interrupt) {
+		Serial.println("Accelerometer interrupt!!!!");
 	}
-	*/
+	delay(1000);
+}
 
-	if (sleep_cycles < 3 && !accelerometer_interrupt) {
+void doSleepTimer() {
+	if (sleep_cycles < (wake_rate / 8) && !accelerometer_interrupt) {
 		sleep_cycles++;
 		Serial.print("sleep cycles ");
 		Serial.println(sleep_cycles);
@@ -169,23 +136,52 @@ void loop() {
 	else {
 		Serial.println("Sleep cycles elapsed. Waking up.");
 	}
-	if (accelerometer_interrupt) {
-		Serial.println("Accelerometer interrupt!!!!");
-	}
-	Serial.println("Loop");
-	delay(1000);
-
-	// flush input
-	/*
-	flushSerial();
-	while (fona.available()) {
-		Serial.write(fona.read());
-	}
-	checkLowBattery();
-	logGPSLocation();
-	delay(10000);
-	*/
 }
+
+void fonaInit() {
+	Serial.println(F("FONA basic test"));
+	Serial.println(F("Initializing....(May take 3 seconds)"));
+
+	fonaSerial->begin(9600);
+
+	if (!fona.begin(*fonaSerial)) {
+		Serial.println(F("Couldn't find FONA"));
+		while (1);
+	}
+
+	type = fona.type();
+
+	// Print SIM card IMEI number.
+	char imei[15] = { 0 }; // MUST use a 16 character buffer for IMEI!
+	uint8_t imeiLen = fona.getIMEI(imei);
+
+	// Set IMEI in post data
+	strncpy(&postdata[IMEI_INDEX], imei, 15);
+
+	// Set UID in post data
+	strncpy(&postdata[UID_INDEX], UID, strlen(UID));
+	fona.setGPRSNetworkSettings(F(APN));
+
+	Serial.println(F("Enabling GPRS"));
+	while (!fona.enableGPRS(true)) delay(5000);
+
+	Serial.println(F("Enabling GPS"));
+	while (!fona.enableGPS(true)) delay(5000);
+
+	Serial.println(F("Starting sequence"));
+	while (!newSequence()) delay(5000);
+}
+
+void accelerometerInit() {
+	if (!mma.begin()) {
+		Serial.println(F("Coudln't initialize MMA8451 Accelerometer"));
+	}
+	else {
+		Serial.println(F("MMA8451 Accelerometer OK"));
+	}
+	pinMode(2, INPUT);
+}
+
 
 void initWDT() {
 	/* Clear the reset flag. */
@@ -208,7 +204,7 @@ ISR(WDT_vect)
 }
 void enterSleep(void)
 {
-	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   /* EDIT: could also use SLEEP_MODE_PWR_DOWN for lowest power consumption. */
+	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   
 	sleep_enable();
 	if (motion_detector) {
 		mma.clearMotionDetector();
@@ -223,22 +219,22 @@ void enterSleep(void)
 	sleep_cpu();
 	/* Now enter sleep mode. */
 	sleep_mode();
-
 	/* The program will continue from here after the WDT timeout*/
 	sleep_disable(); /* First thing to do is disable sleep. */
-
 	/* Re-enable the peripherals. */
 	power_all_enable();
 }
 
-void initPostData() {
-	strncpy(&postdata[UID_INDEX], UID, strlen(UID));
-	strncpy(&postdata[IMEI_INDEX], IMEI, strlen(IMEI));
+bool postError(void) {
+	return strncmp_P(postresult, ERROR, strlen(ERROR)) == 0;
 }
 
-void clearPostData() {
-	memset(&postdata[EVENT_INDEX], ' ', 17);
-	memset(&postdata[DATA_INDEX], ' ', 120);
+void setPostData(char *data, int index) {
+	strncpy(&postdata[index], data, strlen(data));
+}
+
+void clearPostData(int index, int length) {
+	memset(&postdata[index], ' ', length);
 }
 
 bool sendPostData() {
@@ -302,7 +298,7 @@ bool checkLowBattery() {
 
 bool logGPSLocation() {
 	clearPostData();
-	setEvent(GPS_LOCATION);
+	setEvent(GPS);
 	fona.getGPS(0, &postdata[DATA_INDEX], 120);
 	if (!sendPostData()) return false;
 	if (postError()) {
@@ -313,7 +309,7 @@ bool logGPSLocation() {
 
 bool newSequence() {
 	clearPostData();
-	setEvent(NEW_SEQUENCE);
+	setEvent(BOOT);
 	if (!sendPostData()) return false;
 	if (postError()) {
 		return false;
@@ -333,14 +329,4 @@ void accelerometerISR() {
 	accelerometer_interrupt = true;
 	Serial.println(F("Accelerometer Interrupt"));
 
-}
-void initSensors()
-{
-	Serial.println(F("Initializing Motion Detector"));
-	if (mma.begin()) {
-		motion_detector = true;
-	}
-	else {
-		Serial.println(F("Could not find Adafruit MMA8451 Accelerometer"));
-	}
 }
