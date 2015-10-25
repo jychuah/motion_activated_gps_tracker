@@ -30,6 +30,7 @@ User specific settings
 #define		IMEI				"865067020757418"
 /**************************************************************************************/
 #define DEBUG true
+//#define SIMULATE true
 #define SLEEP_ENABLED true
 
 #define FONA_RX 2
@@ -40,7 +41,7 @@ User specific settings
 #define FONA_KEY_PIN 8
 #define FONA_POWER_PIN 7
 
-#define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
+#define HELPER_URL		"https://n8tviml7v6.execute-api.us-west-2.amazonaws.com/prod"
 
 
 // Event strings
@@ -119,7 +120,7 @@ uint8_t type;
 volatile bool accelerometer_interrupt = false;
 volatile bool wake_timer_expired = false;
 volatile bool should_sleep = true;
-int wake_rate = 32;
+int wake_rate = 80;
 
 void setup() {
 	pinMode(FONA_KEY_PIN, OUTPUT);
@@ -137,6 +138,10 @@ void setup() {
 	if (chargeStatus == 0) {
 		Serial.println(F("Fona battery is Charging"));
 	}
+	logBoot();
+	logGPS();
+	logBattery();
+
 
 #ifdef SLEEP_ENABLED
 	initWDT();
@@ -153,10 +158,10 @@ void loop() {
 	}
 	if (wake_timer_expired) {
 		Serial.println(F("Wake timer expired."));
-		wake_timer_expired = false;
+		logGPS();
+		logBattery();
+		setSleep();
 	}
-	Serial.println("Loop");
-	delay(1000);
 }
 
 /*******************************************************************
@@ -201,6 +206,8 @@ bool fonaInit() {
 	while (!fona.enableGPS(true) && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
 	if (attempts >= FONA_MAX_ATTEMPTS) return false;
 
+	fona.setHTTPSRedirect(true);
+
 	fona.enableRTC(true);
 	fona.enableNTPTimeSync(true, NULL);
 
@@ -214,11 +221,12 @@ bool fona_powered_down() {
 
 bool fonaRestart() {
 	int attempts = 0;
-	while (fona_powered_down() && attempts < FONA_MAX_ATTEMPTS) {
+	while (fona_powered_down() && attempts < FONA_MAX_ATTEMPTS * 2) {
 		Serial.println(F("Attempting key"));
 		digitalWrite(FONA_KEY_PIN, LOW);
 		delay(FONA_DELAY / 2 + attempts * 1000);
 		digitalWrite(FONA_KEY_PIN, HIGH);
+		delay(2000);
 		Serial.println(F("key attempt finished"));
 		attempts++;
 	}
@@ -307,6 +315,8 @@ void enterSleep(void)
 {
 	if (!fona_powered_down()) {
 		Serial.begin(9600);
+		Serial.print(F("Sleep cycles: "));
+		Serial.println(sleep_cycles);
 		Serial.println(F("Powering down FONA"));
 		digitalWrite(FONA_KEY_PIN, HIGH);
 		fona.powerDown();
@@ -448,7 +458,7 @@ bool logWake() {
 	Serial.println("Wake postdata");
 	Serial.println(postdata);
 #endif
-#ifndef DEBUG
+#ifndef SIMULATE
 	if (!sendPostData()) return false;
 #endif
 	return postError();
@@ -478,7 +488,7 @@ bool logBattery() {
 			Serial.println(F("Battery postdata:"));
 			Serial.println(postdata);
 #endif
-#ifndef DEBUG
+#ifndef SIMULATE
 			if (!sendPostData()) return false;
 #endif
 			if (postError()) return false;
@@ -541,7 +551,7 @@ bool logGPS() {
 	Serial.println("GPS postdata: ");
 	Serial.println(postdata);
 #endif
-#ifndef DEBUG
+#ifndef SIMULATE
 	if (!sendPostData()) return false;
 #endif
 	if (postError()) {
@@ -555,7 +565,7 @@ bool newSequence() {
 #ifdef DEBUG
 	Serial.println("Boot postdata:");
 #endif
-#ifndef DEBUG
+#ifndef SIMULATE
 	if (!sendPostData()) return false;
 #endif
 	if (postError()) {
