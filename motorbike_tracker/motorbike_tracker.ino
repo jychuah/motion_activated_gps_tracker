@@ -98,7 +98,8 @@ HardwareSerial *fonaSerial = &Serial1;
 Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
 Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
-bool motion_detector = false;
+bool accelerometer_present = false;
+bool fona_present = false;
 volatile int sleep_cycles = 0;
 volatile int f_wdt = 1;
 
@@ -114,8 +115,8 @@ void setup() {
 	while (!Serial);
 	Serial.begin(9600);
 
-	fonaInit();
-	accelerometerInit();
+	fona_present = fonaInit();
+	accelerometer_present = accelerometerInit();
 	initWDT();
 	enterSleep();
 }
@@ -181,14 +182,15 @@ bool fonaInit() {
 	return true;
 }
 
-void accelerometerInit() {
+bool accelerometerInit() {
 	if (!mma.begin()) {
 		Serial.println(F("Coudln't initialize MMA8451 Accelerometer"));
+		return false;
 	}
 	else {
 		Serial.println(F("MMA8451 Accelerometer OK"));
+		return true;
 	}
-	pinMode(2, INPUT);
 }
 
 /*******************************************************************
@@ -202,7 +204,7 @@ void doSleepTimer() {
 	if (sleep_cycles < (wake_rate / 8) && !accelerometer_interrupt && !wake_timer_expired) {
 		sleep_cycles++;;
 		if (mma.motionDetected()) {				// detect motion and clear latch
-			Serial.println("Accelerometer interrupt");
+			accelerometer_interrupt = true;
 		}
 		else {
 			delay(100);
