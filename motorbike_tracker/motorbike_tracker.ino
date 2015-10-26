@@ -28,8 +28,8 @@ User specific settings
 #define		APN					"fast.t-mobile.com"
 #define     UID					"d76db2b8-be35-477c-a428-2623d523fbfd"
 /**************************************************************************************/
-//#define DEBUG true
-//#define SIMULATE true
+#define DEBUG true
+#define SIMULATE true
 #define INFO true
 #define SLEEP_ENABLED true
 
@@ -642,11 +642,13 @@ int getGPS() {
 	if (latDiff < -1) latDiff = latDiff * -1;
 	if (lngDiff < -1) lngDiff = lngDiff * -1;
 
-	clearBuffer();
-	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
-	setPostData(buffer, TIMESTAMP_INDEX);
 
-	if (latDiff < GPS_CHANGE_THRESHOLD && lngDiff < GPS_CHANGE_THRESHOLD) return GPS_NO_CHANGE;
+	if (latDiff < GPS_CHANGE_THRESHOLD && lngDiff < GPS_CHANGE_THRESHOLD) {
+		clearBuffer();
+		sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
+		setPostData(buffer, TIMESTAMP_INDEX);
+		return GPS_NO_CHANGE;
+	}
 	lat = newLat;
 	lng = newLng;
 
@@ -663,6 +665,11 @@ int getGPS() {
 	postdata[dataIndex] = ',';
 	dataIndex++;
 	setPostData(heading, dataIndex);
+
+	clearBuffer();
+	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
+	setPostData(buffer, TIMESTAMP_INDEX);
+
 #ifdef DEBUG
 	debug(postdata);
 #endif
