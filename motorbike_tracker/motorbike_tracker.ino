@@ -31,6 +31,7 @@ User specific settings
 /**************************************************************************************/
 //#define DEBUG true
 //#define SIMULATE true
+//#define INFO true
 #define SLEEP_ENABLED true
 
 #define FONA_RX 2
@@ -89,7 +90,39 @@ char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 #define BUFFER_LENGTH 120
 char buffer[BUFFER_LENGTH];
 
+/*******************************************************************
+
+Utility methods
+
+********************************************************************/
 #define clearBuffer()		memset(buffer, 0, BUFFER_LENGTH)
+
+bool attempt(bool (*callback)()) {
+	int attempts = 0;
+	while (!callback() && attempts < FONA_MAX_ATTEMPTS) {
+		delay(FONA_DELAY + attempts * 1000);
+	}
+	return attempts < FONA_MAX_ATTEMPTS;
+}
+
+void debug(const __FlashStringHelper* message) {
+#ifdef DEBUG
+	Serial.println(message);
+#endif
+}
+
+void debug(const char* message) {
+#ifdef DEBUG
+	Serial.println(message);
+#endif
+}
+
+void info(const __FlashStringHelper* message) {
+#ifdef INFO
+	Serial.println(message);
+#endif
+}
+
 
 // This is to handle the absence of software serial on platforms
 // like the Arduino Due. Modify this code if you are using different
@@ -135,13 +168,13 @@ void setup() {
 	while (!Serial);
 	Serial.begin(9600);
 
-	fona_present = fonaInit();
+	while (!fonaInit());									// FONA must init!
 	accelerometer_present = accelerometerInit();
 
 	uint16_t chargeStatus = -1;
 	fona.getBattChargeStatus(&chargeStatus);
 	if (chargeStatus == 0) {
-		Serial.println(F("Fona battery is Charging"));
+		info(F("Fona battery is Charging"));
 	}
 	logBoot();
 	logGPS();
@@ -157,13 +190,11 @@ void loop() {
 	doSleepTimer();
 #endif
 	if (accelerometer_present && accelerometer_interrupt) {
-		Serial.println(F("Accelerometer interrupt!!!!"));
+		info(F("Accelerometer interrupt!!!!"));
 	}
 	if (wake_timer_expired) {
-		Serial.println(F("Wake timer expired."));
-		int attempts = 0;
-		while (!logGPS() && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
-		logGPS();
+		info(F("Wake timer expired."));
+		attempt(&logGPS);
 		logBattery();
 		setSleep();
 	}
@@ -176,13 +207,13 @@ Hardware Init Functions
 ********************************************************************/
 
 bool fonaInit() {
-	Serial.println(F("FONA basic test"));
-	Serial.println(F("Initializing....(May take 3 seconds)"));
+	info(F("FONA basic test"));
+	info(F("Initializing....(May take 3 seconds)"));
 
 	fonaSerial->begin(9600);
 
 	if (!fona.begin(*fonaSerial)) {
-		Serial.println(F("Couldn't find FONA"));
+		info(F("Couldn't find FONA"));
 		return false;
 	}
 
@@ -199,47 +230,51 @@ bool fonaInit() {
 	strncpy(&postdata[UID_INDEX], UID, strlen(UID));
 	fona.setGPRSNetworkSettings(F(APN));
 
-	int attempts;
+	bool result = false;
 
-	attempts = 0;
-	Serial.println(F("Enabling GPRS"));
-	while (!fona.enableGPRS(true) && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
-	if (attempts >= FONA_MAX_ATTEMPTS) return false;
+	info(F("Enabling GPRS"));
+	result = attempt(&fona_enable_gprs);
+	if (!result) return false;
 	
-	attempts = 0;
-	Serial.println(F("Enabling GPS"));
-	while (!fona.enableGPS(true) && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
-	if (attempts >= FONA_MAX_ATTEMPTS) return false;
+	info(F("Enabling GPS"));
+	result = attempt(&fona_enable_gps);
+	if (!result) return false;
 
 	fona.enableRTC(true);
 	fona.enableNTPTimeSync(true, NULL);
 
-	Serial.println(F("Fona Init Successful"));
+	info(F("Fona Init Successful"));
 	return true;
 }
 
-bool fona_powered_down() {
-	return (digitalRead(FONA_POWER_PIN) == LOW);
+bool fona_enable_gprs() {
+	return fona.enableGPRS(true);
+}
+
+bool fona_enable_gps() {
+	return fona.enableGPS(true);
+}
+
+bool fona_powered_up() {
+	return (digitalRead(FONA_POWER_PIN) == HIGH);
+}
+
+bool fona_key() {
+	info(F("Attempting key"));
+	digitalWrite(FONA_KEY_PIN, LOW);
+	delay(FONA_DELAY);
+	digitalWrite(FONA_KEY_PIN, HIGH);
+	delay(FONA_DELAY);
+	info(F("key attempt finished"));
+	return fona_powered_up();
 }
 
 bool fonaRestart() {
-	int attempts = 0;
-	while (fona_powered_down() && attempts < FONA_MAX_ATTEMPTS * 2) {
-		Serial.println(F("Attempting key"));
-		digitalWrite(FONA_KEY_PIN, LOW);
-		delay(FONA_DELAY / 2 + attempts * 1000);
-		digitalWrite(FONA_KEY_PIN, HIGH);
-		delay(2000);
-		Serial.println(F("key attempt finished"));
-		attempts++;
-	}
-	if (attempts >= FONA_MAX_ATTEMPTS) {
-		return false;
-	}
+	if (!attempt(&fona_key)) return false;
 
 	// Fona MUST reinitialize
 	while (!fonaInit()) { 
-		Serial.println(F("Couldn't re-initialize Fona!"));
+		info(F("Couldn't re-initialize Fona!"));
 		delay(1000); 
 	}
 	return true;
@@ -247,11 +282,11 @@ bool fonaRestart() {
 
 bool accelerometerInit() {
 	if (!mma.begin()) {
-		Serial.println(F("Coudln't initialize MMA8451 Accelerometer"));
+		info(F("Coudln't initialize MMA8451 Accelerometer"));
 		return false;
 	}
 	else {
-		Serial.println(F("MMA8451 Accelerometer OK"));
+		info(F("MMA8451 Accelerometer OK"));
 		return true;
 	}
 }
@@ -270,14 +305,14 @@ void doSleepTimer() {
 	if (sleep_cycles >= (wake_rate * 60 / 8) && should_sleep) {
 		// sleep expired
 		Serial.begin(9600);
-		Serial.println(F("Sleep expired"));
+		info(F("Sleep expired"));
 		should_sleep = false;
 		wake_timer_expired = true;
 		fonaRestart();
 	}
 	if (accelerometer_present && mma.motionDetected() && should_sleep) {				// detect motion and clear latch
 		Serial.begin(9600);
-		Serial.println(F("Motion detected"));
+		info(F("Motion detected"));
 		should_sleep = false;
 		accelerometer_interrupt = true;
 		fonaRestart();
@@ -293,7 +328,7 @@ void setSleep() {
 }
 
 void initWDT() {
-	Serial.println(F("Initializing Watchdog Timer"));
+	info(F("Initializing Watchdog Timer"));
 	delay(1000);
 	/* Clear the reset flag. */
 	MCUSR &= ~(1 << WDRF);
@@ -316,11 +351,9 @@ ISR(WDT_vect)
 
 void enterSleep(void)
 {
-	if (!fona_powered_down()) {
+	if (fona_powered_up()) {
 		Serial.begin(9600);
-		Serial.print(F("Sleep cycles: "));
-		Serial.println(sleep_cycles);
-		Serial.println(F("Powering down FONA"));
+		info(F("Powering down FONA"));
 		digitalWrite(FONA_KEY_PIN, HIGH);
 		fona.powerDown();
 		delay(500);
@@ -441,10 +474,9 @@ bool setTimeStamp() {
 			clearBuffer();
 			sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
 			setPostData(buffer, TIMESTAMP_INDEX);
-#ifdef DEBUG
-			Serial.println("Timestamp postdata:");
-			Serial.println(postdata);
-#endif		
+
+			debug(postdata);
+
 			return true;
 		}
 		else {
@@ -458,10 +490,8 @@ bool setTimeStamp() {
 bool logWake() {
 	setTimeStamp();
 	setEvent(WAKE_EVENT);
-#ifdef DEBUG
-	Serial.println("Wake postdata");
-	Serial.println(postdata);
-#endif
+	debug("Wake postdata");
+	debug(postdata);
 #ifndef SIMULATE
 	if (!sendPostData()) return false;
 #endif
@@ -472,7 +502,7 @@ bool logWake() {
 bool logBoot() {
 	setTimeStamp();
 	int attempts = 0;
-	Serial.println(F("Starting sequence"));
+	info(F("Starting sequence"));
 	while (!newSequence() && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
 	if (attempts >= FONA_MAX_ATTEMPTS) return false;
 }
@@ -488,10 +518,7 @@ bool logBattery() {
 			sprintf_P(buffer, BATTERY_FORMAT, vbat);
 			clearPostData(DATA_INDEX, DATA_LENGTH);
 			setPostData(buffer, DATA_INDEX);
-#ifdef DEBUG
-			Serial.println(F("Battery postdata:"));
-			Serial.println(postdata);
-#endif
+			debug(postdata);
 #ifndef SIMULATE
 			if (!sendPostData()) return false;
 #endif
@@ -499,7 +526,7 @@ bool logBattery() {
 		}
 	}
 	else {
-		Serial.print(F("Failed to read battery"));
+		info(F("Failed to read battery"));
 		return false;
 	}
 	return true;
@@ -516,12 +543,12 @@ bool logGPS() {
 
 	char * token = strtok_P(buffer, GPS_TOKEN);
 	if (token[0] == '0') {
-		Serial.println(F("No GPS lock"));
+		info(F("No GPS lock"));
 		return false;
 	}
 	token = strtok_P(NULL, GPS_TOKEN);		// check lock token
 	if (token[0] == '0') {
-		Serial.println(F("No GPS lock"));
+		info(F("No GPS lock"));
 		return false;
 	}
 
@@ -552,8 +579,7 @@ bool logGPS() {
 
 	setEvent(GPS);
 #ifdef DEBUG
-	Serial.println("GPS postdata: ");
-	Serial.println(postdata);
+	debug(postdata);
 #endif
 #ifndef SIMULATE
 	if (!sendPostData()) return false;
@@ -567,24 +593,13 @@ bool logGPS() {
 bool newSequence() {
 	clearBuffer();
 	setEvent(BOOT);
-#ifdef DEBUG
-	Serial.println("Boot postdata:");
-#endif
 #ifndef SIMULATE
 	if (!sendPostData()) return false;
 #endif
 	if (postError()) {
 		return false;
 	}
-#ifdef DEBUG
-	Serial.println("Boot response:");
-	Serial.println(buffer);
-#endif
 	strncpy(&postdata[SEQUENCE_INDEX], buffer, strlen(buffer));
-#ifdef DEBUG
-	Serial.println("Boot postdata after response:");
-	Serial.println(postdata);
-#endif
 	return strlen(buffer) == SEQUENCE_LENGTH;
 }
 
