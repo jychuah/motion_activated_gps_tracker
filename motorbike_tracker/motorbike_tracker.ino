@@ -27,12 +27,13 @@ User specific settings
 ***************************************************************************************/
 #define		APN					"fast.t-mobile.com"
 #define     UID					"d76db2b8-be35-477c-a428-2623d523fbfd"
-#define		IMEI				"865067020757418"
 /**************************************************************************************/
 //#define DEBUG true
 //#define SIMULATE true
 //#define INFO true
-#define SLEEP_ENABLED true
+//#define SLEEP_ENABLED true
+
+#define GPS_CHANGE_THRESHOLD 0.0002f
 
 #define FONA_RX 2
 #define FONA_TX 3
@@ -89,6 +90,7 @@ char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 
 #define BUFFER_LENGTH 120
 char buffer[BUFFER_LENGTH];
+float lat = 0, lng = 0;
 
 /*******************************************************************
 
@@ -177,8 +179,6 @@ void setup() {
 		info(F("Fona battery is Charging"));
 	}
 	logBoot();
-	logGPS();
-
 #ifdef SLEEP_ENABLED
 	initWDT();
 	setSleep();
@@ -495,6 +495,9 @@ bool logWake() {
 #ifndef SIMULATE
 	if (!sendPostData()) return false;
 #endif
+#ifdef SIMULATE
+	return true;
+#endif
 	return postError();
 }
 
@@ -522,6 +525,10 @@ bool logBattery() {
 #ifndef SIMULATE
 			if (!sendPostData()) return false;
 #endif
+
+#ifdef SIMULATE
+			return true;
+#endif
 			if (postError()) return false;
 		}
 	}
@@ -532,7 +539,37 @@ bool logBattery() {
 	return true;
 }
 
+#define GPS_CHANGED  0
+#define GPS_NO_CHANGE 1
+#define GPS_NO_LOCK -1
+
 bool logGPS() {
+	int result = setGPS();
+	if (result == GPS_NO_CHANGE) {
+		info(F("No GPS location change"));
+		return true;
+	}
+	if (result == GPS_NO_LOCK) {
+		info(F("No GPS lock"));
+		return false;
+	}
+	info(F("GPS change"));
+	setEvent(GPS);
+
+#ifndef SIMULATE
+	if (!sendPostData()) return false;
+#endif
+
+#ifdef SIMULATE
+	return true;
+#endif
+	if (postError()) {
+		return false;
+	}
+	return true;
+}
+
+int setGPS() {
 	setTimeStamp();
 	clearBuffer();
 	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
@@ -544,50 +581,49 @@ bool logGPS() {
 	char * token = strtok_P(buffer, GPS_TOKEN);
 	if (token[0] == '0') {
 		info(F("No GPS lock"));
-		return false;
+		return GPS_NO_LOCK;
 	}
-	token = strtok_P(NULL, GPS_TOKEN);		// check lock token
+	token = strtok_P(NULL, GPS_TOKEN);		// set next token to lock flag
+
+	char * date = strtok_P(NULL, GPS_TOKEN);		// we are now at date
 	if (token[0] == '0') {
 		info(F("No GPS lock"));
-		return false;
+		return GPS_NO_LOCK;
 	}
+	char * latitude = strtok_P(NULL, GPS_TOKEN);		// latitude
+	float newLat = atof(latitude);
+	char * longitude = strtok_P(NULL, GPS_TOKEN);		// longitude
+	float newLng = atof(longitude);
+	char * altitude = strtok_P(NULL, GPS_TOKEN);		// altitude
+	char * speed = strtok_P(NULL, GPS_TOKEN);		// speed (?)
+	char * heading = strtok_P(NULL, GPS_TOKEN);		// heading (?)
 
-	token = strtok_P(NULL, GPS_TOKEN);		// we are now at date
-	token = strtok_P(NULL, GPS_TOKEN);		// latitude
-	setPostData(token, LOCATION_INDEX);
-	postdata[LOCATION_INDEX + strlen(token)] = ',';
-	int dataIndex = LOCATION_INDEX + strlen(token) + 1;
+	float latDiff = lat - newLat;
+	float lngDiff = lng - newLng;
+	if (latDiff < -1) latDiff = latDiff * -1;
+	if (lngDiff < -1) lngDiff = lngDiff * -1;
+	if (latDiff < GPS_CHANGE_THRESHOLD && lngDiff < GPS_CHANGE_THRESHOLD) return GPS_NO_CHANGE;
 
-	token = strtok_P(NULL, GPS_TOKEN);		// longitude
-	setPostData(token, dataIndex);
-
-	token = strtok_P(NULL, GPS_TOKEN);		// altitude
-	setPostData(token, DATA_INDEX);
-	dataIndex = DATA_INDEX + strlen(token);
+	lat = newLat;
+	lng = newLng;
+	setPostData(latitude, LOCATION_INDEX);
+	postdata[LOCATION_INDEX + strlen(latitude)] = ',';
+	int dataIndex = LOCATION_INDEX + strlen(latitude) + 1;
+	setPostData(longitude, dataIndex);
+	setPostData(altitude, DATA_INDEX);
+	dataIndex = DATA_INDEX + strlen(altitude);
 	postdata[dataIndex] = ',';
 	dataIndex++;
-
-	token = strtok_P(NULL, GPS_TOKEN);		// speed (?)
-	setPostData(token, dataIndex);
-	dataIndex += strlen(token);
+	setPostData(speed, dataIndex);
+	dataIndex += strlen(speed);
 	postdata[dataIndex] = ',';
 	dataIndex++;
-
-	token = strtok_P(NULL, GPS_TOKEN);		// heading (?)
-	setPostData(token, dataIndex);
-
-
-	setEvent(GPS);
+	setPostData(heading, dataIndex);
 #ifdef DEBUG
 	debug(postdata);
 #endif
-#ifndef SIMULATE
-	if (!sendPostData()) return false;
-#endif
-	if (postError()) {
-		return false;
-	}
-	return true;
+
+	return GPS_CHANGED;
 }
 
 bool newSequence() {
@@ -595,6 +631,10 @@ bool newSequence() {
 	setEvent(BOOT);
 #ifndef SIMULATE
 	if (!sendPostData()) return false;
+#endif
+
+#ifdef SIMULATE
+	return true;
 #endif
 	if (postError()) {
 		return false;
