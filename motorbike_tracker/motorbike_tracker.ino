@@ -31,7 +31,7 @@ User specific settings
 //#define DEBUG true
 //#define SIMULATE true
 //#define INFO true
-//#define SLEEP_ENABLED true
+#define SLEEP_ENABLED true
 
 #define GPS_CHANGE_THRESHOLD 0.0002f
 
@@ -178,6 +178,7 @@ void setup() {
 	if (chargeStatus == 0) {
 		info(F("Fona battery is Charging"));
 	}
+	getGPS();
 	logBoot();
 #ifdef SLEEP_ENABLED
 	initWDT();
@@ -503,11 +504,24 @@ bool logWake() {
 
 
 bool logBoot() {
-	setTimeStamp();
 	int attempts = 0;
 	info(F("Starting sequence"));
-	while (!newSequence() && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
-	if (attempts >= FONA_MAX_ATTEMPTS) return false;
+	clearBuffer();
+	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
+	setPostData(buffer, SEQUENCE_INDEX);
+	setEvent(BOOT);
+#ifndef SIMULATE
+	if (!sendPostData()) return false;
+#endif
+
+#ifdef SIMULATE
+	return true;
+#endif
+	if (postError()) {
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -544,7 +558,7 @@ bool logBattery() {
 #define GPS_NO_LOCK -1
 
 bool logGPS() {
-	int result = setGPS();
+	int result = getGPS();
 	if (result == GPS_NO_CHANGE) {
 		info(F("No GPS location change"));
 		return true;
@@ -569,8 +583,7 @@ bool logGPS() {
 	return true;
 }
 
-int setGPS() {
-	setTimeStamp();
+int getGPS() {
 	clearBuffer();
 	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
 	clearPostData(DATA_INDEX, DATA_LENGTH);
@@ -586,6 +599,34 @@ int setGPS() {
 	token = strtok_P(NULL, GPS_TOKEN);		// set next token to lock flag
 
 	char * date = strtok_P(NULL, GPS_TOKEN);		// we are now at date
+	num[0] = date[0];
+	num[1] = date[1];
+	num[2] = date[2];
+	num[3] = date[3];
+	int year = atoi(num);
+	num[2] = 0;
+	num[3] = 0;
+	num[0] = date[4];
+	num[1] = date[5];
+	int month = atoi(num);
+	num[0] = date[6];
+	num[1] = date[7];
+	int day = atoi(num);
+	num[0] = date[8];
+	num[1] = date[9];
+	int hour = atoi(num);
+	num[0] = date[10];
+	num[1] = date[11];
+	int minute = atoi(num);
+	num[0] = date[12];
+	num[1] = date[13];
+	int second = atoi(num);
+
+	current_time.setTime(year, month, day, hour, minute, second);
+	clearBuffer();
+	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
+	setPostData(buffer, TIMESTAMP_INDEX);
+
 	if (token[0] == '0') {
 		info(F("No GPS lock"));
 		return GPS_NO_LOCK;
