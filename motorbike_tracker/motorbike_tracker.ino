@@ -82,7 +82,7 @@ char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 					"\"imei\" : \"012345678901234\", "
 					"\"sequence\" : \"-abcdefghijklmnopqrs\", "
 					"\"location\" : \"-180.123456, -180.123456\", "
-					"\"timestamp\" : \"0123456789\", "
+					"\"timestamp\" : \"SERVER    \", "
 					"\"type\" : \"event_type_string\","
 					"\"data\" : \"0123456789012345678901234567890123456789\" }";
 
@@ -130,7 +130,6 @@ void setup() {
 	clearPostData(TYPE_INDEX, TYPE_LENGTH);
 	clearPostData(IMEI_INDEX, IMEI_LENGTH);
 	clearPostData(SEQUENCE_INDEX, SEQUENCE_LENGTH);
-	clearPostData(TIMESTAMP_INDEX, TIMESTAMP_LENGTH);
 	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
 	clearPostData(DATA_INDEX, DATA_LENGTH);
 	while (!Serial);
@@ -407,6 +406,7 @@ Tracker Event Functions
 ********************************************************************/
 
 bool setTimeStamp() {
+	return true;
 	char num[4] = { 0 };
 	if (hardware_rtc_present) {
 		// get hardware RTC value
