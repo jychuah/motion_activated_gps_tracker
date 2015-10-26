@@ -161,6 +161,8 @@ void loop() {
 	}
 	if (wake_timer_expired) {
 		Serial.println(F("Wake timer expired."));
+		int attempts = 0;
+		while (!logGPS() && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
 		logGPS();
 		logBattery();
 		setSleep();
