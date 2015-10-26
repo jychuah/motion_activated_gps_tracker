@@ -117,7 +117,7 @@ boolean Adafruit_FONA::setBaudrate(uint16_t baud) {
 
 /******* Power Down ********/
 boolean Adafruit_FONA::powerDown() {
-	uint16_t mode = 1;
+	uint16_t mode = 0;
 	return sendCheckReply(F("AT+CPOWD="), mode, F("OK"));
 }
 

@@ -30,7 +30,7 @@ User specific settings
 /**************************************************************************************/
 //#define DEBUG true
 //#define SIMULATE true
-//#define INFO true
+#define INFO true
 #define SLEEP_ENABLED true
 
 #define GPS_CHANGE_THRESHOLD 0.0002f
@@ -299,11 +299,11 @@ Sleep Functions
 ********************************************************************/
 
 void doSleepTimer() {
-	if (sleep_cycles < (wake_rate * 60 / 8) && should_sleep) {
+	if (sleep_cycles < (wake_rate * 16 / 8) && should_sleep) {
 		sleep_cycles++;
 		enterSleep();
 	}
-	if (sleep_cycles >= (wake_rate * 60 / 8) && should_sleep) {
+	if (sleep_cycles >= (wake_rate * 16 / 8) && should_sleep) {
 		// sleep expired
 		Serial.begin(9600);
 		info(F("Sleep expired"));
@@ -597,6 +597,7 @@ int getGPS() {
 		return GPS_NO_LOCK;
 	}
 	token = strtok_P(NULL, GPS_TOKEN);		// set next token to lock flag
+	int lockFlag = atoi(token);
 
 	char * date = strtok_P(NULL, GPS_TOKEN);		// we are now at date
 	num[0] = date[0];
@@ -623,11 +624,8 @@ int getGPS() {
 	int second = atoi(num);
 
 	current_time.setTime(year, month, day, hour, minute, second);
-	clearBuffer();
-	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
-	setPostData(buffer, TIMESTAMP_INDEX);
 
-	if (token[0] == '0') {
+	if (lockFlag == 0) {
 		info(F("No GPS lock"));
 		return GPS_NO_LOCK;
 	}
@@ -643,10 +641,15 @@ int getGPS() {
 	float lngDiff = lng - newLng;
 	if (latDiff < -1) latDiff = latDiff * -1;
 	if (lngDiff < -1) lngDiff = lngDiff * -1;
-	if (latDiff < GPS_CHANGE_THRESHOLD && lngDiff < GPS_CHANGE_THRESHOLD) return GPS_NO_CHANGE;
 
+	clearBuffer();
+	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
+	setPostData(buffer, TIMESTAMP_INDEX);
+
+	if (latDiff < GPS_CHANGE_THRESHOLD && lngDiff < GPS_CHANGE_THRESHOLD) return GPS_NO_CHANGE;
 	lat = newLat;
 	lng = newLng;
+
 	setPostData(latitude, LOCATION_INDEX);
 	postdata[LOCATION_INDEX + strlen(latitude)] = ',';
 	int dataIndex = LOCATION_INDEX + strlen(latitude) + 1;
