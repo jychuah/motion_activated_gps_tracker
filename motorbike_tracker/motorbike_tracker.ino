@@ -29,7 +29,7 @@ User specific settings
 #define     UID					"d76db2b8-be35-477c-a428-2623d523fbfd"
 #define		IMEI				"865067020757418"
 /**************************************************************************************/
-#define DEBUG true
+//#define DEBUG true
 //#define SIMULATE true
 #define SLEEP_ENABLED true
 
@@ -41,7 +41,7 @@ User specific settings
 #define FONA_KEY_PIN 8
 #define FONA_POWER_PIN 7
 
-#define HELPER_URL		"https://n8tviml7v6.execute-api.us-west-2.amazonaws.com/prod"
+#define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
 
 
 // Event strings
@@ -80,9 +80,9 @@ const char BATTERY_FORMAT[] PROGMEM = "%u";
 //JSON post buffer
 char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 					"\"imei\" : \"012345678901234\", "
-					"\"sequence\" : \"-K1B0_C2_tb5uNlFeutR\", "
+					"\"sequence\" : \"-abcdefghijklmnopqrs\", "
 					"\"location\" : \"-180.123456, -180.123456\", "
-					"\"timestamp\" : \"1444091176\", "
+					"\"timestamp\" : \"0123456789\", "
 					"\"type\" : \"event_type_string\","
 					"\"data\" : \"0123456789012345678901234567890123456789\" }";
 
@@ -120,12 +120,18 @@ uint8_t type;
 volatile bool accelerometer_interrupt = false;
 volatile bool wake_timer_expired = false;
 volatile bool should_sleep = true;
-int wake_rate = 80;
+int wake_rate = 1;
 
 void setup() {
 	pinMode(FONA_KEY_PIN, OUTPUT);
 	pinMode(FONA_POWER_PIN, INPUT);
 	digitalWrite(FONA_KEY_PIN, LOW);
+	clearPostData(UID_INDEX, UID_LENGTH);
+	clearPostData(TYPE_INDEX, TYPE_LENGTH);
+	clearPostData(IMEI_INDEX, IMEI_LENGTH);
+	clearPostData(SEQUENCE_INDEX, SEQUENCE_LENGTH);
+	clearPostData(TIMESTAMP_INDEX, TIMESTAMP_LENGTH);
+	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
 	clearPostData(DATA_INDEX, DATA_LENGTH);
 	while (!Serial);
 	Serial.begin(9600);
@@ -140,8 +146,6 @@ void setup() {
 	}
 	logBoot();
 	logGPS();
-	logBattery();
-
 
 #ifdef SLEEP_ENABLED
 	initWDT();
@@ -206,8 +210,6 @@ bool fonaInit() {
 	while (!fona.enableGPS(true) && attempts < FONA_MAX_ATTEMPTS) delay(FONA_DELAY + attempts * 1000);
 	if (attempts >= FONA_MAX_ATTEMPTS) return false;
 
-	fona.setHTTPSRedirect(true);
-
 	fona.enableRTC(true);
 	fona.enableNTPTimeSync(true, NULL);
 
@@ -260,11 +262,11 @@ Sleep Functions
 ********************************************************************/
 
 void doSleepTimer() {
-	if (sleep_cycles < (wake_rate / 8) && should_sleep) {
+	if (sleep_cycles < (wake_rate * 60 / 8) && should_sleep) {
 		sleep_cycles++;
 		enterSleep();
 	}
-	if (sleep_cycles >= (wake_rate / 8) && should_sleep) {
+	if (sleep_cycles >= (wake_rate * 60 / 8) && should_sleep) {
 		// sleep expired
 		Serial.begin(9600);
 		Serial.println(F("Sleep expired"));
@@ -478,7 +480,7 @@ bool logBattery() {
 	setTimeStamp();
 	uint16_t vbat;
 	if (fona.getBattPercent(&vbat)) {
-		if (vbat < 20) {
+		if (vbat > 0) {
 			setEvent(BATTERY);
 			clearBuffer();
 			sprintf_P(buffer, BATTERY_FORMAT, vbat);
@@ -562,6 +564,7 @@ bool logGPS() {
 
 bool newSequence() {
 	clearBuffer();
+	setEvent(BOOT);
 #ifdef DEBUG
 	Serial.println("Boot postdata:");
 #endif
@@ -573,9 +576,8 @@ bool newSequence() {
 	}
 #ifdef DEBUG
 	Serial.println("Boot response:");
-	Serial.println(postdata);
+	Serial.println(buffer);
 #endif
-	setEvent(BOOT);
 	strncpy(&postdata[SEQUENCE_INDEX], buffer, strlen(buffer));
 #ifdef DEBUG
 	Serial.println("Boot postdata after response:");
