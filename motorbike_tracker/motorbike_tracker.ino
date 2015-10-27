@@ -168,6 +168,12 @@ volatile bool wake_timer_expired = false;
 volatile bool should_sleep = true;
 int wake_rate = 1;
 
+/*****************************************************************
+
+Setup and Loop
+
+******************************************************************/
+
 void setup() {
 	pinMode(FONA_KEY_PIN, OUTPUT);
 	pinMode(FONA_POWER_PIN, INPUT);
@@ -204,12 +210,18 @@ void loop() {
 	if (accelerometer_present && accelerometer_interrupt) {
 		info(F("Accelerometer interrupt!!!!"));
 	}
+#ifndef SLEEP_ENABLED
+	wake_timer_expired = true;
+#endif
 	if (wake_timer_expired) {
 		info(F("Wake timer expired."));
 		attempt(&logGPS);
-		logBattery();
+//		logBattery();
 		setSleep();
 	}
+#ifndef SLEEP_ENABLED
+	delay(8000);
+#endif
 }
 
 /*******************************************************************
@@ -646,8 +658,6 @@ int getGPS() {
 	float lngDiff = lng - newLng;
 	if (latDiff < -1) latDiff = latDiff * -1;
 	if (lngDiff < -1) lngDiff = lngDiff * -1;
-
-
 	if (latDiff < GPS_CHANGE_THRESHOLD && lngDiff < GPS_CHANGE_THRESHOLD) {
 		clearBuffer();
 		sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
@@ -681,23 +691,6 @@ int getGPS() {
 #endif
 
 	return GPS_CHANGED;
-}
-
-bool newSequence() {
-	clearBuffer();
-	setEvent(BOOT);
-#ifndef SIMULATE
-	if (!sendPostData()) return false;
-#endif
-
-#ifdef SIMULATE
-	return true;
-#endif
-	if (postError()) {
-		return false;
-	}
-	strncpy(&postdata[SEQUENCE_INDEX], buffer, strlen(buffer));
-	return strlen(buffer) == SEQUENCE_LENGTH;
 }
 
 void flushSerial() {
