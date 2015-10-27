@@ -323,11 +323,11 @@ Sleep Functions
 ********************************************************************/
 
 void doSleepTimer() {
-	if (sleep_cycles < (wake_rate * 16 / 8) && should_sleep) {
+	if (sleep_cycles < (wake_rate * 60 / 8) && should_sleep) {
 		sleep_cycles++;
 		enterSleep();
 	}
-	if (sleep_cycles >= (wake_rate * 16 / 8) && should_sleep) {
+	if (sleep_cycles >= (wake_rate * 60 / 8) && should_sleep) {
 		// sleep expired
 		Serial.begin(9600);
 		info(F("Sleep expired"));
