@@ -28,11 +28,14 @@ User specific settings
 #define		APN					"fast.t-mobile.com"
 #define     UID					"d76db2b8-be35-477c-a428-2623d523fbfd"
 /**************************************************************************************/
-#define DEBUG true
-#define SIMULATE true
-#define INFO true
+//#define DEBUG true
+//#define SIMULATE true
+//#define INFO true
 #define SLEEP_ENABLED true
 
+#define GPS_CHANGED  0
+#define GPS_NO_CHANGE 1
+#define GPS_NO_LOCK -1
 #define GPS_CHANGE_THRESHOLD 0.0002f
 
 #define FONA_RX 2
@@ -102,6 +105,14 @@ Utility methods
 bool attempt(bool (*callback)()) {
 	int attempts = 0;
 	while (!callback() && attempts < FONA_MAX_ATTEMPTS) {
+		delay(FONA_DELAY + attempts * 1000);
+	}
+	return attempts < FONA_MAX_ATTEMPTS;
+}
+
+bool attempt(int(*callback)(), int result) {
+	int attempts = 0;
+	while (callback() != result && attempts < FONA_MAX_ATTEMPTS) {
 		delay(FONA_DELAY + attempts * 1000);
 	}
 	return attempts < FONA_MAX_ATTEMPTS;
@@ -178,8 +189,8 @@ void setup() {
 	if (chargeStatus == 0) {
 		info(F("Fona battery is Charging"));
 	}
-	getGPS();
-	logBoot();
+	attempt(&getGPS, GPS_CHANGED);
+	attempt(&logBoot);
 #ifdef SLEEP_ENABLED
 	initWDT();
 	setSleep();
@@ -553,10 +564,6 @@ bool logBattery() {
 	return true;
 }
 
-#define GPS_CHANGED  0
-#define GPS_NO_CHANGE 1
-#define GPS_NO_LOCK -1
-
 bool logGPS() {
 	int result = getGPS();
 	if (result == GPS_NO_CHANGE) {
@@ -585,8 +592,6 @@ bool logGPS() {
 
 int getGPS() {
 	clearBuffer();
-	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
-	clearPostData(DATA_INDEX, DATA_LENGTH);
 
 	char num[16] = { 0 };
 	fona.getGPS(32, buffer, BUFFER_LENGTH);
@@ -651,7 +656,8 @@ int getGPS() {
 	}
 	lat = newLat;
 	lng = newLng;
-
+	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
+	clearPostData(DATA_INDEX, DATA_LENGTH);
 	setPostData(latitude, LOCATION_INDEX);
 	postdata[LOCATION_INDEX + strlen(latitude)] = ',';
 	int dataIndex = LOCATION_INDEX + strlen(latitude) + 1;
