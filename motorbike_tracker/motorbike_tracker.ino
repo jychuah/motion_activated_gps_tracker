@@ -30,7 +30,7 @@ User specific settings
 /**************************************************************************************/
 //#define DEBUG true
 //#define SIMULATE true
-//#define INFO true
+#define INFO true
 #define SLEEP_ENABLED true
 
 #define GPS_CHANGED  0
@@ -53,6 +53,7 @@ User specific settings
 const char BATTERY[] PROGMEM = "battery";
 const char PROVISION[] PROGMEM = "provision";
 const char GPS[] PROGMEM = "gps";
+const char CHECKIN[] PROGMEM = "checkin";
 const char WAKE_EVENT[] PROGMEM = "wake";
 const char BOOT[] PROGMEM = "boot";
 const char SLEEP[] PROGMEM = "sleep";
@@ -578,16 +579,19 @@ bool logBattery() {
 
 bool logGPS() {
 	int result = getGPS();
-	if (result == GPS_NO_CHANGE) {
-		info(F("No GPS location change"));
-		return true;
-	}
+
 	if (result == GPS_NO_LOCK) {
 		info(F("No GPS lock"));
 		return false;
 	}
-	info(F("GPS change"));
-	setEvent(GPS);
+	if (result == GPS_NO_CHANGE) {
+		info(F("No GPS location change"));
+		setEvent(CHECKIN);
+	}
+	else {
+		info(F("GPS change"));
+		setEvent(GPS);
+	}
 
 #ifndef SIMULATE
 	if (!sendPostData()) return false;
