@@ -659,9 +659,6 @@ int getGPS() {
 	char * token = strtok_P(buffer, GPS_TOKEN);
 	if (token[0] == '0') {
 		info(F("No GPS lock"));
-		lat = 0;
-		lng = 0;
-		stationaryCount = 0;
 		return GPS_NO_LOCK;
 	}
 	token = strtok_P(NULL, GPS_TOKEN);		// set next token to lock flag
@@ -695,9 +692,6 @@ int getGPS() {
 
 	if (lockFlag == 0) {
 		info(F("No GPS lock"));
-		lat = 0;
-		lng = 0;
-		stationaryCount = 0;
 		return GPS_NO_LOCK;
 	}
 	char * latitude = strtok_P(NULL, GPS_TOKEN);		// latitude
