@@ -28,10 +28,10 @@ User specific settings
 #define		APN					"fast.t-mobile.com"
 #define     UID					"d76db2b8-be35-477c-a428-2623d523fbfd"
 /**************************************************************************************/
-//#define DEBUG true
-//#define SIMULATE true
+#define DEBUG true
+#define SIMULATE true
 #define INFO true
-#define SLEEP_ENABLED true
+//#define SLEEP_ENABLED true
 
 #define GPS_CHANGED  0
 #define GPS_NO_CHANGE 1
@@ -73,7 +73,10 @@ const char BATTERY_FORMAT[] PROGMEM = "%u";
 #define LOCATION_INDEX 129
 #define TIMESTAMP_INDEX 171
 #define TYPE_INDEX 194
-#define DATA_INDEX 223
+#define HEADING_INDEX 226
+#define BATTERY_INDEX 285
+#define TEMPERATURE_INDEX 325
+#define EXTRAS_INDEX 350
 
 #define UID_LENGTH 36
 #define IMEI_LENGTH 15
@@ -81,7 +84,10 @@ const char BATTERY_FORMAT[] PROGMEM = "%u";
 #define LOCATION_LENGTH 24
 #define TIMESTAMP_LENGTH 10
 #define TYPE_LENGTH 17
-#define DATA_LENGTH 40
+#define HEADING_LENGTH 32
+#define BATTERY_LENGTH 20
+#define	TEMPERATURE_LENGTH 10
+#define EXTRAS_LENGTH 10
 
 //JSON post buffer
 char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
@@ -90,11 +96,39 @@ char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 					"\"location\" : \"-180.123456, -180.123456\", "
 					"\"timestamp\" : \"SERVER    \", "
 					"\"type\" : \"event_type_string\","
-					"\"data\" : \"0123456789012345678901234567890123456789\" }";
+					"\"heading\" : \"-1234.5678,-1234.5678,-1234.5678\", "
+					"\"data\" : { "
+					"\"battery\" : \"b1234567890123456789\", "
+					"\"temperature\" : \"t123456789\", "
+					"\"extras\" : \"e123456789\" } }";
+
+// Data buffer
 
 #define BUFFER_LENGTH 120
 char buffer[BUFFER_LENGTH];
+
+// Tracker status info
+
+bool accelerometer_present = false;
+bool fona_present = false;
+bool hardware_rtc_present = false;
+DateTime current_time = DateTime(1970, 1, 1, 0, 0, 0);
+volatile int sleep_cycles = 0;
+volatile int f_wdt = 1;
+uint8_t type;
+int wake_rate = 1;
 float lat = 0, lng = 0;
+int chargeStatus = 0;
+int battPercent = 100;
+int battMilliVolts = 5000;
+
+
+// Tracker state flags
+
+volatile bool accelerometer_interrupt = false;
+volatile bool wake_timer_expired = false;
+volatile bool notify_battery_low = false;
+volatile bool should_sleep = true;
 
 /*******************************************************************
 
@@ -102,6 +136,76 @@ Utility methods
 
 ********************************************************************/
 #define clearBuffer()		memset(buffer, 0, BUFFER_LENGTH)
+
+void printPostData() {
+#ifdef DEBUG
+	Serial.println(F("**** START POST DATA **** "));
+
+	char buff[60] = { 0 };
+	Serial.print(F("UID: "));
+	strncpy(buff, &postdata[UID_INDEX], UID_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+
+	Serial.print(F("IMEI: "));
+	strncpy(buff, &postdata[IMEI_INDEX], IMEI_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+	
+
+	Serial.print(F("SEQUENCE: "));
+	strncpy(buff, &postdata[SEQUENCE_INDEX], SEQUENCE_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+
+
+	Serial.print(F("LOCATION: "));
+	strncpy(buff, &postdata[LOCATION_INDEX], LOCATION_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+
+
+	Serial.print(F("TIMESTAMP: "));
+	strncpy(buff, &postdata[TIMESTAMP_INDEX], TIMESTAMP_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+
+
+	Serial.print(F("TYPE: "));
+	strncpy(buff, &postdata[TYPE_INDEX], TYPE_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+
+
+	Serial.print(F("HEADING: "));
+	strncpy(buff, &postdata[HEADING_INDEX], HEADING_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+
+
+	Serial.print(F("BATTERY: "));
+	strncpy(buff, &postdata[BATTERY_INDEX], BATTERY_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+
+
+	Serial.print(F("TEMPERATURE: "));
+	strncpy(buff, &postdata[TEMPERATURE_INDEX], TEMPERATURE_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+
+
+	Serial.print(F("EXTRAS: "));
+	strncpy(buff, &postdata[EXTRAS_INDEX], EXTRAS_LENGTH);
+	Serial.println(buff);
+	memset(buff, 0, 60);
+
+
+	Serial.println(F("Postdata: "));
+	Serial.println(postdata);
+	Serial.println(F("**** END POST DATA ****"));
+#endif
+}
 
 bool attempt(bool (*callback)()) {
 	int attempts = 0;
@@ -154,76 +258,10 @@ HardwareSerial *fonaSerial = &Serial1;
 Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
 Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
-bool accelerometer_present = false;
-bool fona_present = false;
-bool hardware_rtc_present = false;
-DateTime current_time = DateTime(1970, 1, 1, 0, 0, 0);
-volatile int sleep_cycles = 0;
-volatile int f_wdt = 1;
 
 uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
-uint8_t type;
-volatile bool accelerometer_interrupt = false;
-volatile bool wake_timer_expired = false;
-volatile bool should_sleep = true;
-int wake_rate = 1;
 
-/*****************************************************************
-
-Setup and Loop
-
-******************************************************************/
-
-void setup() {
-	pinMode(FONA_KEY_PIN, OUTPUT);
-	pinMode(FONA_POWER_PIN, INPUT);
-	digitalWrite(FONA_KEY_PIN, LOW);
-	clearPostData(UID_INDEX, UID_LENGTH);
-	clearPostData(TYPE_INDEX, TYPE_LENGTH);
-	clearPostData(IMEI_INDEX, IMEI_LENGTH);
-	clearPostData(SEQUENCE_INDEX, SEQUENCE_LENGTH);
-	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
-	clearPostData(DATA_INDEX, DATA_LENGTH);
-	while (!Serial);
-	Serial.begin(9600);
-
-	while (!fonaInit());									// FONA must init!
-	accelerometer_present = accelerometerInit();
-
-	uint16_t chargeStatus = -1;
-	fona.getBattChargeStatus(&chargeStatus);
-	if (chargeStatus == 0) {
-		info(F("Fona battery is Charging"));
-	}
-	attempt(&getGPS, GPS_CHANGED);
-	attempt(&logBoot);
-#ifdef SLEEP_ENABLED
-	initWDT();
-	setSleep();
-#endif
-}
-
-void loop() {
-#ifdef SLEEP_ENABLED
-	doSleepTimer();
-#endif
-	if (accelerometer_present && accelerometer_interrupt) {
-		info(F("Accelerometer interrupt!!!!"));
-	}
-#ifndef SLEEP_ENABLED
-	wake_timer_expired = true;
-#endif
-	if (wake_timer_expired) {
-		info(F("Wake timer expired."));
-		attempt(&logGPS);
-//		logBattery();
-		setSleep();
-	}
-#ifndef SLEEP_ENABLED
-	delay(8000);
-#endif
-}
 
 /*******************************************************************
 
@@ -346,6 +384,7 @@ void doSleepTimer() {
 
 void setSleep() {
 	mma.motionDetected();
+	notify_battery_low = false;
 	accelerometer_interrupt = false;
 	wake_timer_expired = false;
 	sleep_cycles = 0;
@@ -406,6 +445,9 @@ Post Functions
 
 ********************************************************************/
 bool postError(void) {
+#ifdef SIMULATE
+	return false;
+#endif
 	return strncmp_P(buffer, ERROR, strlen(ERROR)) == 0;
 }
 bool postOK(void) {
@@ -430,6 +472,9 @@ void setEvent(const char *event) {
 }
 
 bool sendPostData() {
+#ifdef SIMULATE
+	return true;
+#endif
 	clearBuffer();
 
 	uint16_t statuscode;
@@ -465,65 +510,20 @@ Tracker Event Functions
 
 ********************************************************************/
 
-bool setTimeStamp() {
-	return true;
-	char num[4] = { 0 };
+bool setRTCTimeStamp() {
 	if (hardware_rtc_present) {
 		// get hardware RTC value
 		return true;
-	}
-	else {
-		if (fona_present) {
-			clearBuffer();
-			fona.getTime(buffer, BUFFER_LENGTH);
-			num[0] = buffer[1];
-			num[1] = buffer[2];
-			int year = atoi(num) + 2000;
-			num[0] = buffer[4];
-			num[1] = buffer[5];
-			int month = atoi(num);
-			num[0] = buffer[7];
-			num[1] = buffer[8];
-			int day = atoi(num);
-			num[0] = buffer[10];
-			num[1] = buffer[11];
-			int hour = atoi(num);
-			num[0] = buffer[13];
-			num[1] = buffer[14];
-			int minute = atoi(num);
-			num[0] = buffer[16];
-			num[1] = buffer[17];
-			int second = atoi(num);
-
-			current_time.setTime(year, month, day, hour, minute, second);
-			clearBuffer();
-			sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
-			setPostData(buffer, TIMESTAMP_INDEX);
-
-			debug(postdata);
-
-			return true;
-		}
-		else {
-			// No timestamp available
-			return false;
-		}
 	}
 	return false;
 }
 
 bool logWake() {
-	setTimeStamp();
+	setRTCTimeStamp();
 	setEvent(WAKE_EVENT);
-	debug("Wake postdata");
-	debug(postdata);
-#ifndef SIMULATE
+	printPostData();
 	if (!sendPostData()) return false;
-#endif
-#ifdef SIMULATE
-	return true;
-#endif
-	return postError();
+	return !postError();
 }
 
 
@@ -534,47 +534,8 @@ bool logBoot() {
 	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
 	setPostData(buffer, SEQUENCE_INDEX);
 	setEvent(BOOT);
-#ifndef SIMULATE
 	if (!sendPostData()) return false;
-#endif
-
-#ifdef SIMULATE
-	return true;
-#endif
-	if (postError()) {
-		return false;
-	}
-
-	return true;
-}
-
-
-bool logBattery() {
-	setTimeStamp();
-	uint16_t vbat;
-	if (fona.getBattPercent(&vbat)) {
-		if (vbat > 0) {
-			setEvent(BATTERY);
-			clearBuffer();
-			sprintf_P(buffer, BATTERY_FORMAT, vbat);
-			clearPostData(DATA_INDEX, DATA_LENGTH);
-			setPostData(buffer, DATA_INDEX);
-			debug(postdata);
-#ifndef SIMULATE
-			if (!sendPostData()) return false;
-#endif
-
-#ifdef SIMULATE
-			return true;
-#endif
-			if (postError()) return false;
-		}
-	}
-	else {
-		info(F("Failed to read battery"));
-		return false;
-	}
-	return true;
+	return !postError();
 }
 
 bool logGPS() {
@@ -593,18 +554,36 @@ bool logGPS() {
 		setEvent(GPS);
 	}
 
-#ifndef SIMULATE
 	if (!sendPostData()) return false;
-#endif
+	return !postError();
+}
 
+bool getBattery() {
+	setRTCTimeStamp();
+	clearBuffer();
+	fona.getBattInfo(buffer, BUFFER_LENGTH);
+	clearPostData(BATTERY_INDEX, BATTERY_LENGTH);
+	setPostData(buffer, BATTERY_INDEX);
+	printPostData();
+	char* token = strtok_P(buffer, GPS_TOKEN);
+	chargeStatus = atoi(token);
+	token = strtok_P(NULL, GPS_TOKEN);
+	int newBattPercent = atoi(token);
 #ifdef SIMULATE
-	return true;
+	newBattPercent = 10;
 #endif
-	if (postError()) {
-		return false;
+	if (newBattPercent < battPercent && newBattPercent < 15 && chargeStatus == 0) {
+		notify_battery_low = true;
+#ifdef SIMULATE
+		Serial.println(F("Low battery notification"));
+#endif
 	}
+	battPercent = newBattPercent;
+	token = strtok_P(NULL, GPS_TOKEN);
+	battMilliVolts = atoi(token);
 	return true;
 }
+
 
 int getGPS() {
 	clearBuffer();
@@ -671,28 +650,23 @@ int getGPS() {
 	lat = newLat;
 	lng = newLng;
 	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
-	clearPostData(DATA_INDEX, DATA_LENGTH);
 	setPostData(latitude, LOCATION_INDEX);
 	postdata[LOCATION_INDEX + strlen(latitude)] = ',';
-	int dataIndex = LOCATION_INDEX + strlen(latitude) + 1;
-	setPostData(longitude, dataIndex);
-	setPostData(altitude, DATA_INDEX);
-	dataIndex = DATA_INDEX + strlen(altitude);
-	postdata[dataIndex] = ',';
-	dataIndex++;
-	setPostData(speed, dataIndex);
-	dataIndex += strlen(speed);
-	postdata[dataIndex] = ',';
-	dataIndex++;
-	setPostData(heading, dataIndex);
-
+	setPostData(longitude, LOCATION_INDEX + strlen(latitude) + 1);
+	clearPostData(HEADING_INDEX, HEADING_LENGTH);
+	setPostData(altitude, HEADING_INDEX);
+	int nextIndex = HEADING_INDEX + strlen(altitude);
+	postdata[nextIndex] = ',';
+	nextIndex++;
+	setPostData(speed, nextIndex);
+	nextIndex += strlen(speed);
+	postdata[nextIndex] = ',';
+	nextIndex++;
+	setPostData(heading, nextIndex);
 	clearBuffer();
 	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
 	setPostData(buffer, TIMESTAMP_INDEX);
-
-#ifdef DEBUG
-	debug(postdata);
-#endif
+	printPostData();
 
 	return GPS_CHANGED;
 }
@@ -702,3 +676,68 @@ void flushSerial() {
 		Serial.read();
 }
 
+/*****************************************************************
+
+Setup and Loop
+
+******************************************************************/
+
+void setup2() {
+	Serial.begin(9600);
+	printPostData();
+
+	while (1);
+}
+
+void setup() {
+	pinMode(FONA_KEY_PIN, OUTPUT);
+	pinMode(FONA_POWER_PIN, INPUT);
+	digitalWrite(FONA_KEY_PIN, LOW);
+	clearPostData(UID_INDEX, UID_LENGTH);
+	clearPostData(TYPE_INDEX, TYPE_LENGTH);
+	clearPostData(IMEI_INDEX, IMEI_LENGTH);
+	clearPostData(SEQUENCE_INDEX, SEQUENCE_LENGTH);
+	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
+	while (!Serial);
+	Serial.begin(9600);
+
+	while (!fonaInit());									// FONA must init!
+	accelerometer_present = accelerometerInit();
+
+	uint16_t chargeStatus = -1;
+	fona.getBattChargeStatus(&chargeStatus);
+	if (chargeStatus == 0) {
+		info(F("Fona battery is Charging"));
+	}
+#ifdef SIMULATE
+	attempt(&getGPS, GPS_CHANGED);
+	while (1);
+
+#endif
+	attempt(&getGPS, GPS_CHANGED);
+	attempt(&logBoot);
+#ifdef SLEEP_ENABLED
+	initWDT();
+	setSleep();
+#endif
+}
+
+void loop() {
+#ifdef SLEEP_ENABLED
+	doSleepTimer();
+#endif
+	if (accelerometer_present && accelerometer_interrupt) {
+		info(F("Accelerometer interrupt!!!!"));
+	}
+#ifndef SLEEP_ENABLED
+	wake_timer_expired = true;
+#endif
+	if (wake_timer_expired) {
+		info(F("Wake timer expired."));
+		attempt(&logGPS);
+		setSleep();
+	}
+#ifndef SLEEP_ENABLED
+	delay(8000);
+#endif
+}

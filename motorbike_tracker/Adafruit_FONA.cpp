@@ -145,6 +145,24 @@ boolean Adafruit_FONA::getBattVoltage(uint16_t *v) {
   return sendParseReply(F("AT+CBC"), F("+CBC: "), v, ',', 2);
 }
 
+int Adafruit_FONA::getBattInfo(char *buffer, int maxbuff) {
+	getReply("AT+CBC");
+	char *p = strstr_P(replybuffer, (prog_char*)F("+CBC"));
+	if (p == 0) {
+		buffer[0] = 0;
+		return 0;
+	}
+
+	p += 6;
+
+	uint8_t len = min(maxbuff - 1, strlen(p));
+	strncpy(buffer, p, len);
+	buffer[len] = 0;
+
+	readline(); // eat 'OK'
+	return len;
+}
+
 /* returns value in mV (uint16_t) */
 boolean Adafruit_FONA_3G::getBattVoltage(uint16_t *v) {
   float f;

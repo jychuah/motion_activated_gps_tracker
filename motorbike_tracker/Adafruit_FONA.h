@@ -96,6 +96,7 @@ class Adafruit_FONA : public Stream {
   boolean getBattPercent(uint16_t *p);
   boolean getBattVoltage(uint16_t *v);
   boolean getBattChargeStatus(uint16_t *s);
+  int getBattInfo(char *buffer, int maxbuff);
 
 
   // SIM query
