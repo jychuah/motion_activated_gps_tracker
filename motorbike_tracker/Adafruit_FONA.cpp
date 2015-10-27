@@ -121,6 +121,29 @@ boolean Adafruit_FONA::powerDown() {
 	return sendCheckReply(F("AT+CPOWD="), mode, F("OK"));
 }
 
+/******* Temperature *******/
+boolean Adafruit_FONA::enableTemperatureDetection() {
+	return sendCheckReply(F("AT+CMTE="), 1, F("OK"));
+}
+
+int Adafruit_FONA::getTemperatureInfo(char *buffer, int maxbuff) {
+	getReply("AT+CMTE?");
+	char *p = strstr_P(replybuffer, (prog_char*)F("+CMTE"));
+	if (p == 0) {
+		buffer[0] = 0;
+		return 0;
+	}
+
+	p += 7;
+
+	uint8_t len = min(maxbuff - 1, strlen(p));
+	strncpy(buffer, p, len);
+	buffer[len] = 0;
+
+	readline(); // eat 'OK'
+	return len;
+}
+
 /********* Real Time Clock ********************************************/
 
 boolean Adafruit_FONA::readRTC(uint8_t *year, uint8_t *month, uint8_t *date, uint8_t *hr, uint8_t *min, uint8_t *sec) {

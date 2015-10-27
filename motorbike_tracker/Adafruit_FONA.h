@@ -84,6 +84,10 @@ class Adafruit_FONA : public Stream {
   // FONA Power Off
   boolean powerDown();
 
+  // FONA temperature
+  boolean enableTemperatureDetection();
+  int getTemperatureInfo(char *buffer, int maxbuff);
+
   // FONA 3G requirements
   boolean setBaudrate(uint16_t baud);
 

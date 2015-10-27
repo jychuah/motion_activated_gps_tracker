@@ -28,10 +28,10 @@ User specific settings
 #define		APN					"fast.t-mobile.com"
 #define     UID					"d76db2b8-be35-477c-a428-2623d523fbfd"
 /**************************************************************************************/
-#define DEBUG true
-#define SIMULATE true
+//#define DEBUG true
+//#define SIMULATE true
 #define INFO true
-//#define SLEEP_ENABLED true
+#define SLEEP_ENABLED true
 
 #define GPS_CHANGED  0
 #define GPS_NO_CHANGE 1
@@ -51,7 +51,6 @@ User specific settings
 
 // Event strings
 const char BATTERY[] PROGMEM = "battery";
-const char PROVISION[] PROGMEM = "provision";
 const char GPS[] PROGMEM = "gps";
 const char CHECKIN[] PROGMEM = "checkin";
 const char WAKE_EVENT[] PROGMEM = "wake";
@@ -121,14 +120,16 @@ float lat = 0, lng = 0;
 int chargeStatus = 0;
 int battPercent = 100;
 int battMilliVolts = 5000;
-
+int stationaryCount = 0;
 
 // Tracker state flags
 
 volatile bool accelerometer_interrupt = false;
 volatile bool wake_timer_expired = false;
 volatile bool notify_battery_low = false;
+volatile bool notify_temperature_critical = false;
 volatile bool should_sleep = true;
+volatile bool alert_mode = false;
 
 /*******************************************************************
 
@@ -205,6 +206,24 @@ void printPostData() {
 	Serial.println(postdata);
 	Serial.println(F("**** END POST DATA ****"));
 #endif
+}
+
+void flushSerial() {
+	while (Serial.available())
+		Serial.read();
+}
+
+void clearAllData() {
+	clearPostData(UID_INDEX, UID_LENGTH);
+	clearPostData(TYPE_INDEX, TYPE_LENGTH);
+	clearPostData(IMEI_INDEX, IMEI_LENGTH);
+	clearPostData(SEQUENCE_INDEX, SEQUENCE_LENGTH);
+	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
+	clearPostData(HEADING_INDEX, HEADING_LENGTH);
+	clearPostData(BATTERY_INDEX, BATTERY_LENGTH);
+	clearPostData(TEMPERATURE_INDEX, TEMPERATURE_LENGTH);
+	clearPostData(EXTRAS_INDEX, EXTRAS_LENGTH);
+	printPostData();
 }
 
 bool attempt(bool (*callback)()) {
@@ -293,6 +312,8 @@ bool fonaInit() {
 	strncpy(&postdata[UID_INDEX], UID, strlen(UID));
 	fona.setGPRSNetworkSettings(F(APN));
 
+	fona.enableTemperatureDetection();
+
 	bool result = false;
 
 	info(F("Enabling GPRS"));
@@ -361,30 +382,42 @@ Sleep Functions
 ********************************************************************/
 
 void doSleepTimer() {
-	if (sleep_cycles < (wake_rate * 60 / 8) && should_sleep) {
-		sleep_cycles++;
+	if (notify_temperature_critical && should_sleep) {
+		// permanent sleep due to critical temperature;
 		enterSleep();
 	}
-	if (sleep_cycles >= (wake_rate * 60 / 8) && should_sleep) {
-		// sleep expired
-		Serial.begin(9600);
-		info(F("Sleep expired"));
-		should_sleep = false;
-		wake_timer_expired = true;
-		fonaRestart();
-	}
-	if (accelerometer_present && mma.motionDetected() && should_sleep) {				// detect motion and clear latch
-		Serial.begin(9600);
-		info(F("Motion detected"));
-		should_sleep = false;
-		accelerometer_interrupt = true;
-		fonaRestart();
+	else {
+		if (should_sleep) {
+			if (sleep_cycles < (wake_rate * 60 / 8)) {
+				sleep_cycles++;
+				enterSleep();
+			}
+			if (sleep_cycles >= (wake_rate * 60 / 8)) {
+				// sleep expired, not critical temperature
+				Serial.begin(9600);
+				info(F("Sleep expired"));
+				should_sleep = false;
+				wake_timer_expired = true;
+				fonaRestart();
+			}
+			if (accelerometer_present && mma.motionDetected()) {
+				// detect motion and clear latch
+				Serial.begin(9600);
+				info(F("Motion detected"));
+				should_sleep = false;
+				accelerometer_interrupt = true;
+				alert_mode = true;
+				wake_rate = 1;						// send minute updates
+				fonaRestart();
+			}
+		}
 	}
 }
 
 void setSleep() {
 	mma.motionDetected();
 	notify_battery_low = false;
+	notify_temperature_critical = false;
 	accelerometer_interrupt = false;
 	wake_timer_expired = false;
 	sleep_cycles = 0;
@@ -506,29 +539,33 @@ bool sendPostData() {
 
 /*******************************************************************
 
-Tracker Event Functions
+Tracker Event Logging Functions
 
 ********************************************************************/
+bool logBattery() {
+	setEvent(BATTERY);
+	info(F("Sending low battery notification"));
+	printPostData();
+	if (!sendPostData()) return false;
+	return !postError();
+}
 
-bool setRTCTimeStamp() {
-	if (hardware_rtc_present) {
-		// get hardware RTC value
-		return true;
-	}
-	return false;
+bool logTemperature() {
+	setEvent(TEMPERATURE);
+	info(F("Sending temperature critical notification"));
+	printPostData();
+	if (!sendPostData()) return false;
+	return !postError();
 }
 
 bool logWake() {
-	setRTCTimeStamp();
 	setEvent(WAKE_EVENT);
 	printPostData();
 	if (!sendPostData()) return false;
 	return !postError();
 }
 
-
 bool logBoot() {
-	int attempts = 0;
 	info(F("Starting sequence"));
 	clearBuffer();
 	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
@@ -558,10 +595,38 @@ bool logGPS() {
 	return !postError();
 }
 
-bool getBattery() {
-	setRTCTimeStamp();
+/*****************************************************
+
+Fona Status Checks
+
+******************************************************/
+bool setRTCTimeStamp() {
+	if (hardware_rtc_present) {
+		// get hardware RTC value
+		return true;
+	}
+	return false;
+}
+
+bool getTemperature() {
 	clearBuffer();
-	fona.getBattInfo(buffer, BUFFER_LENGTH);
+	fona.getTemperatureInfo(buffer, TEMPERATURE_LENGTH);
+	if (postError()) return false;
+	setPostData(buffer, TEMPERATURE_INDEX);
+	printPostData();
+	char *token = strtok_P(buffer, GPS_TOKEN);
+	token = strtok_P(NULL, GPS_TOKEN);
+	token = strtok_P(NULL, GPS_TOKEN);
+	if (strlen(token) > 0) {
+		info(F("Critical battery temperature"));
+		notify_temperature_critical = true;
+	}
+	return true;
+}
+
+bool getBattery() {
+	clearBuffer();
+	fona.getBattInfo(buffer, BATTERY_LENGTH);
 	clearPostData(BATTERY_INDEX, BATTERY_LENGTH);
 	setPostData(buffer, BATTERY_INDEX);
 	printPostData();
@@ -594,6 +659,9 @@ int getGPS() {
 	char * token = strtok_P(buffer, GPS_TOKEN);
 	if (token[0] == '0') {
 		info(F("No GPS lock"));
+		lat = 0;
+		lng = 0;
+		stationaryCount = 0;
 		return GPS_NO_LOCK;
 	}
 	token = strtok_P(NULL, GPS_TOKEN);		// set next token to lock flag
@@ -627,6 +695,9 @@ int getGPS() {
 
 	if (lockFlag == 0) {
 		info(F("No GPS lock"));
+		lat = 0;
+		lng = 0;
+		stationaryCount = 0;
 		return GPS_NO_LOCK;
 	}
 	char * latitude = strtok_P(NULL, GPS_TOKEN);		// latitude
@@ -645,6 +716,7 @@ int getGPS() {
 		clearBuffer();
 		sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
 		setPostData(buffer, TIMESTAMP_INDEX);
+		stationaryCount++;
 		return GPS_NO_CHANGE;
 	}
 	lat = newLat;
@@ -667,13 +739,8 @@ int getGPS() {
 	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
 	setPostData(buffer, TIMESTAMP_INDEX);
 	printPostData();
-
+	stationaryCount = 0;
 	return GPS_CHANGED;
-}
-
-void flushSerial() {
-	while (Serial.available())
-		Serial.read();
 }
 
 /*****************************************************************
@@ -682,38 +749,22 @@ Setup and Loop
 
 ******************************************************************/
 
-void setup2() {
-	Serial.begin(9600);
-	printPostData();
-
-	while (1);
-}
-
 void setup() {
 	pinMode(FONA_KEY_PIN, OUTPUT);
 	pinMode(FONA_POWER_PIN, INPUT);
 	digitalWrite(FONA_KEY_PIN, LOW);
-	clearPostData(UID_INDEX, UID_LENGTH);
-	clearPostData(TYPE_INDEX, TYPE_LENGTH);
-	clearPostData(IMEI_INDEX, IMEI_LENGTH);
-	clearPostData(SEQUENCE_INDEX, SEQUENCE_LENGTH);
-	clearPostData(LOCATION_INDEX, LOCATION_LENGTH);
+	clearAllData();
 	while (!Serial);
 	Serial.begin(9600);
 
 	while (!fonaInit());									// FONA must init!
 	accelerometer_present = accelerometerInit();
 
-	uint16_t chargeStatus = -1;
-	fona.getBattChargeStatus(&chargeStatus);
+	getBattery();
+	getTemperature();
 	if (chargeStatus == 0) {
-		info(F("Fona battery is Charging"));
+		info(F("Tracker is charging"));
 	}
-#ifdef SIMULATE
-	attempt(&getGPS, GPS_CHANGED);
-	while (1);
-
-#endif
 	attempt(&getGPS, GPS_CHANGED);
 	attempt(&logBoot);
 #ifdef SLEEP_ENABLED
@@ -728,14 +779,32 @@ void loop() {
 #endif
 	if (accelerometer_present && accelerometer_interrupt) {
 		info(F("Accelerometer interrupt!!!!"));
+		logWake();
+		alert_mode = true;
 	}
 #ifndef SLEEP_ENABLED
 	wake_timer_expired = true;
 #endif
-	if (wake_timer_expired) {
+	if (wake_timer_expired && !alert_mode) {
 		info(F("Wake timer expired."));
+		getBattery();
+		getTemperature();
 		attempt(&logGPS);
+		if (notify_battery_low) {
+			logBattery();
+		}
+		if (notify_temperature_critical) {
+			logTemperature();
+		}
 		setSleep();
+	}
+	if (alert_mode) {
+		attempt(&logGPS);
+		delay(10000);
+		if (stationaryCount > 30) {
+			alert_mode = false;
+			setSleep();
+		}
 	}
 #ifndef SLEEP_ENABLED
 	delay(8000);
