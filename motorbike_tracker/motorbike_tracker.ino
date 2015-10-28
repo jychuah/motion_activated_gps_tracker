@@ -433,7 +433,7 @@ void doSleepTimer() {
 				info(F("Sleep expired"));
 				should_sleep = false;
 				wake_timer_expired = true;
-				fonaRestart();
+				fona_wake();
 			}
 			if (accelerometer_present && mma.motionDetected()) {
 				// detect motion and clear latch
@@ -443,7 +443,7 @@ void doSleepTimer() {
 				accelerometer_interrupt = true;
 				alert_mode = true;
 				wake_rate = 1;						// send minute updates
-				fonaRestart();
+				fona_wake();
 			}
 		}
 	}
@@ -451,6 +451,7 @@ void doSleepTimer() {
 
 void setSleep() {
 	mma.motionDetected();
+	fona_sleep();
 	notify_battery_low = false;
 	notify_temperature_critical = false;
 	accelerometer_interrupt = false;
@@ -483,14 +484,6 @@ ISR(WDT_vect)
 
 void enterSleep(void)
 {
-	if (fona_powered_up()) {
-		Serial.begin(9600);
-		info(F("Powering down FONA"));
-		digitalWrite(FONA_KEY_PIN, HIGH);
-		fona.powerDown();
-		delay(500);
-		Serial.end();
-	}
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   
 	sleep_enable();
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -799,19 +792,6 @@ void setup() {
 	attempt(&getGPS, GPS_CHANGED);
 	attempt(&logBoot);
 
-	fona_sleep();
-	delay(10000);
-	getGPS();
-	delay(10000);
-	if (attempt(&fona_wake)) {
-		info(F("Fona wake success"));
-		attempt(&getGPS, GPS_CHANGED);
-	}
-	else {
-		info(F("Fona wake fail"));
-	}
-
-	while (1);
 #ifdef SLEEP_ENABLED
 	initWDT();
 	setSleep();
