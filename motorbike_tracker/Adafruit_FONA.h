@@ -83,6 +83,7 @@ class Adafruit_FONA : public Stream {
 
   // FONA Power Off
   boolean powerDown();
+  boolean configureSlowClock(uint8_t mode);
 
   // FONA temperature
   boolean enableTemperatureDetection();

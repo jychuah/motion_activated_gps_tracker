@@ -121,6 +121,10 @@ boolean Adafruit_FONA::powerDown() {
 	return sendCheckReply(F("AT+CPOWD="), mode, F("OK"));
 }
 
+boolean Adafruit_FONA::configureSlowClock(uint8_t mode) {
+	return sendCheckReply(F("AT+CSCLK="), mode, F("OK"));
+}
+
 /******* Temperature *******/
 boolean Adafruit_FONA::enableTemperatureDetection() {
 	return sendCheckReply(F("AT+CMTE="), 1, F("OK"));

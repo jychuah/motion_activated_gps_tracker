@@ -43,6 +43,7 @@ User specific settings
 #define FONA_RST 4
 #define FONA_MAX_ATTEMPTS 5
 #define FONA_DELAY 5000
+#define FONA_DTR_PIN 9
 #define FONA_KEY_PIN 8
 #define FONA_POWER_PIN 7
 
@@ -235,11 +236,11 @@ bool attempt(bool (*callback)()) {
 }
 
 bool attempt(int(*callback)(), int result) {
-	int attempts = 0;
-	while (callback() != result && attempts < FONA_MAX_ATTEMPTS) {
-		delay(FONA_DELAY + attempts * 1000);
-	}
-	return attempts < FONA_MAX_ATTEMPTS;
+int attempts = 0;
+while (callback() != result && attempts < FONA_MAX_ATTEMPTS) {
+	delay(FONA_DELAY + attempts * 1000);
+}
+return attempts < FONA_MAX_ATTEMPTS;
 }
 
 void debug(const __FlashStringHelper* message) {
@@ -314,15 +315,7 @@ bool fonaInit() {
 
 	fona.enableTemperatureDetection();
 
-	bool result = false;
-
-	info(F("Enabling GPRS"));
-	result = attempt(&fona_enable_gprs);
-	if (!result) return false;
-	
-	info(F("Enabling GPS"));
-	result = attempt(&fona_enable_gps);
-	if (!result) return false;
+	if (!fona_wake()) return false;
 
 	fona.enableRTC(true);
 	fona.enableNTPTimeSync(true, NULL);
@@ -331,12 +324,41 @@ bool fonaInit() {
 	return true;
 }
 
+bool fona_sleep() {
+	info(F("Attempting FONA Sleep"));
+	info(F("Disabling GPRS")); 
+	if (!fona_disable_gprs()) return false;
+	info(F("Disabling GPS"));
+	if (!fona_disable_gps()) return false;
+	info(F("Enabling Slow Clock"));
+	if (!fona.configureSlowClock(1)) return false;
+	digitalWrite(FONA_DTR_PIN, HIGH);
+	return true;
+}
+
+bool fona_wake() {
+	info(F("Enabling GPRS"));
+	if (!attempt(&fona_enable_gprs)) return false;
+	info(F("Enabling GPS"));
+	if (!attempt(&fona_enable_gps)) return false;
+	digitalWrite(FONA_DTR_PIN, LOW);
+	return true;
+}
+
 bool fona_enable_gprs() {
 	return fona.enableGPRS(true);
 }
 
+bool fona_disable_gprs() {
+	return fona.enableGPRS(false);
+}
+
 bool fona_enable_gps() {
 	return fona.enableGPS(true);
+}
+
+bool fona_disable_gps() {
+	return fona.disableGPS(true);
 }
 
 bool fona_powered_up() {
@@ -354,10 +376,8 @@ bool fona_key() {
 }
 
 bool fonaRestart() {
-	if (!attempt(&fona_key)) return false;
-
 	// Fona MUST reinitialize
-	while (!fonaInit()) { 
+	while (!fona_wake()) { 
 		info(F("Couldn't re-initialize Fona!"));
 		delay(1000); 
 	}
@@ -446,16 +466,22 @@ ISR(WDT_vect)
 {
 }
 
+void fonaPowerDown() {
+	Serial.begin(9600);
+	info(F("Powering down FONA"));
+	digitalWrite(FONA_KEY_PIN, HIGH);
+	fona.powerDown();
+	delay(500);
+	Serial.end();
+}
+
+void fonaSleep() {
+
+}
+
 void enterSleep(void)
 {
-	if (fona_powered_up()) {
-		Serial.begin(9600);
-		info(F("Powering down FONA"));
-		digitalWrite(FONA_KEY_PIN, HIGH);
-		fona.powerDown();
-		delay(500);
-		Serial.end();
-	}
+	fona_sleep();
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   
 	sleep_enable();
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -744,6 +770,7 @@ Setup and Loop
 ******************************************************************/
 
 void setup() {
+	pinMode(FONA_DTR_PIN, OUTPUT);
 	pinMode(FONA_KEY_PIN, OUTPUT);
 	pinMode(FONA_POWER_PIN, INPUT);
 	digitalWrite(FONA_KEY_PIN, LOW);
