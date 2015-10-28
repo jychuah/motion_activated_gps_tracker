@@ -794,7 +794,7 @@ void setup() {
 
 	getBattery();
 	getTemperature();
-	if (chargeStatus == 0) {
+	if (chargeStatus == 1) {
 		info("Tracker is charging");
 #ifdef FORCE_ARM
 		force_arm = true;
