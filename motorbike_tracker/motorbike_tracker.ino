@@ -340,6 +340,7 @@ bool fona_sleep() {
 
 bool fona_wake() {
 	digitalWrite(FONA_DTR_PIN, LOW);
+	fona.configureSlowClock(0);
 	info(F("Enabling GPRS"));
 	if (!attempt(&fona_enable_gprs)) return false;
 	flushSerial();
