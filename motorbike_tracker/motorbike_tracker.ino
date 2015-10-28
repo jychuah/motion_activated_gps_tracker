@@ -30,7 +30,8 @@ User specific settings
 /**************************************************************************************/
 //#define DEBUG true
 //#define SIMULATE true
-//#define INFO true
+#define INFO true
+#define FORCE_ARM  true
 #define SLEEP_ENABLED true
 
 #define GPS_CHANGED  0
@@ -41,7 +42,7 @@ User specific settings
 #define FONA_RX 2
 #define FONA_TX 3
 #define FONA_RST 4
-#define FONA_MAX_ATTEMPTS 5
+#define FONA_MAX_ATTEMPTS 6
 #define FONA_DELAY 5000
 #define FONA_DTR_PIN 9
 #define FONA_KEY_PIN 8
@@ -782,6 +783,8 @@ void setup() {
 	pinMode(FONA_DTR_PIN, OUTPUT);
 	digitalWrite(FONA_DTR_PIN, LOW);
 	digitalWrite(FONA_KEY_PIN, LOW);
+	bool force_arm = false;
+
 	clearAllData();
 	while (!Serial);
 	Serial.begin(9600);
@@ -793,6 +796,13 @@ void setup() {
 	getTemperature();
 	if (chargeStatus == 0) {
 		info("Tracker is charging");
+#ifdef FORCE_ARM
+		force_arm = true;
+#endif
+		if (!force_arm) {
+			fona_sleep();
+			while (1);									// Charging only
+		}
 	}
 	attempt(&getGPS, GPS_CHANGED);
 	attempt(&logBoot);
