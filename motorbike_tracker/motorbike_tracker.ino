@@ -43,6 +43,7 @@ User specific settings
 #define FONA_RST 4
 #define FONA_MAX_ATTEMPTS 5
 #define FONA_DELAY 5000
+#define FONA_DTR_PIN 9
 #define FONA_KEY_PIN 8
 #define FONA_POWER_PIN 7
 
@@ -239,10 +240,7 @@ bool attempt(int(*callback)(), int result) {
 	int attempts = 0;
 	while (callback() != result && attempts < FONA_MAX_ATTEMPTS) {
 		delay(FONA_DELAY + attempts * 1000);
-<<<<<<< HEAD
 		attempts++;
-=======
->>>>>>> parent of 32f91c0... Added FONA sleep stubs.... have to mod hardware to test.
 	}
 	return attempts < FONA_MAX_ATTEMPTS;
 }
@@ -336,7 +334,6 @@ bool fonaInit() {
 	return true;
 }
 
-<<<<<<< HEAD
 bool fona_sleep() {
 	info(F("Attempting FONA Sleep"));
 	info(F("Disabling GPRS")); 
@@ -344,14 +341,14 @@ bool fona_sleep() {
 	info(F("Disabling GPS"));
 	if (!fona_disable_gps()) return false;
 	info(F("Enabling Slow Clock"));
-	if (!fona.configureSlowClock(1)) return false;
+	if (!fona.enableSleep(true)) return false;
 	digitalWrite(FONA_DTR_PIN, HIGH);
 	return true;
 }
 
 bool fona_wake() {
 	digitalWrite(FONA_DTR_PIN, LOW);
-	fona.configureSlowClock(0);
+	fona.enableSleep(false);
 	info(F("Enabling GPRS"));
 	if (!attempt(&fona_enable_gprs)) return false;
 	flushSerial();
@@ -361,23 +358,22 @@ bool fona_wake() {
 	return true;
 }
 
-=======
->>>>>>> parent of 32f91c0... Added FONA sleep stubs.... have to mod hardware to test.
 bool fona_enable_gprs() {
 	return fona.enableGPRS(true);
+}
+
+bool fona_disable_gprs() {
+	return fona.enableGPRS(false);
 }
 
 bool fona_enable_gps() {
 	return fona.enableGPS(true);
 }
 
-<<<<<<< HEAD
 bool fona_disable_gps() {
 	return fona.enableGPS(false);
 }
 
-=======
->>>>>>> parent of 32f91c0... Added FONA sleep stubs.... have to mod hardware to test.
 bool fona_powered_up() {
 	return (digitalRead(FONA_POWER_PIN) == HIGH);
 }
@@ -785,7 +781,8 @@ Setup and Loop
 void setup() {
 	pinMode(FONA_KEY_PIN, OUTPUT);
 	pinMode(FONA_POWER_PIN, INPUT);
-	digitalWrite(FONA_DTR_PIN, HIGH);
+	pinMode(FONA_DTR_PIN, OUTPUT);
+	digitalWrite(FONA_DTR_PIN, LOW);
 	digitalWrite(FONA_KEY_PIN, LOW);
 	clearAllData();
 	while (!Serial);
