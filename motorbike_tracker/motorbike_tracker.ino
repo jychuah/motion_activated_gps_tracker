@@ -840,14 +840,9 @@ void loop() {
 		setSleep();
 	}
 	if (alert_mode) {
-		if (stationaryCount > 0 && accelerometer_present && mma.motionDetected()) {
-			logWake();
-			stationaryCount = 0;
-		}
 		attempt(&logGPS);
-		delay(5000);
-		if (stationaryCount > 120) {
-			// if more than 10 minutes of stationary, turn off alert
+		delay(10000);
+		if (stationaryCount > 30) {
 			alert_mode = false;
 			setSleep();
 		}
