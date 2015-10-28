@@ -30,7 +30,7 @@ User specific settings
 /**************************************************************************************/
 //#define DEBUG true
 //#define SIMULATE true
-#define INFO true
+//#define INFO true
 #define SLEEP_ENABLED true
 
 #define GPS_CHANGED  0
@@ -256,13 +256,18 @@ void debug(const char* message) {
 	Serial.println(message);
 #endif
 }
-
+/*
 void info(const __FlashStringHelper* message) {
 #ifdef INFO
 	Serial.println(message);
 #endif
 }
-
+*/
+#ifdef INFO
+#define		info(a)	Serial.println(F(a));
+#else
+#define		info(a)	;
+#endif
 
 // This is to handle the absence of software serial on platforms
 // like the Arduino Due. Modify this code if you are using different
@@ -292,13 +297,13 @@ Hardware Init Functions
 ********************************************************************/
 
 bool fonaInit() {
-	info(F("FONA basic test"));
-	info(F("Initializing....(May take 3 seconds)"));
+	info("FONA basic test");
+	info("Initializing....(May take 3 seconds)");
 
 	fonaSerial->begin(9600);
 
 	if (!fona.begin(*fonaSerial)) {
-		info(F("Couldn't find FONA"));
+		info("Couldn't find FONA");
 		return false;
 	}
 
@@ -319,28 +324,28 @@ bool fonaInit() {
 
 	bool result = false;
 
-	info(F("Enabling GPRS"));
+	info("Enabling GPRS");
 	result = attempt(&fona_enable_gprs);
 	if (!result) return false;
 	
-	info(F("Enabling GPS"));
+	info("Enabling GPS");
 	result = attempt(&fona_enable_gps);
 	if (!result) return false;
 
 	fona.enableRTC(true);
 	fona.enableNTPTimeSync(true, NULL);
 
-	info(F("Fona Init Successful"));
+	info("Fona Init Successful");
 	return true;
 }
 
 bool fona_sleep() {
-	info(F("Attempting FONA Sleep"));
-	info(F("Disabling GPRS")); 
+	info("Attempting FONA Sleep");
+	info("Disabling GPRS"); 
 	if (!fona_disable_gprs()) return false;
-	info(F("Disabling GPS"));
+	info("Disabling GPS");
 	if (!fona_disable_gps()) return false;
-	info(F("Enabling Slow Clock"));
+	info("Enabling Slow Clock");
 	if (!fona.enableSleep(true)) return false;
 	digitalWrite(FONA_DTR_PIN, HIGH);
 	return true;
@@ -349,10 +354,10 @@ bool fona_sleep() {
 bool fona_wake() {
 	digitalWrite(FONA_DTR_PIN, LOW);
 	fona.enableSleep(false);
-	info(F("Enabling GPRS"));
+	info("Enabling GPRS");
 	if (!attempt(&fona_enable_gprs)) return false;
 	flushSerial();
-	info(F("Enabling GPS"));
+	info("Enabling GPS");
 	if (!attempt(&fona_enable_gps)) return false;
 	flushSerial();
 	return true;
@@ -379,12 +384,12 @@ bool fona_powered_up() {
 }
 
 bool fona_key() {
-	info(F("Attempting key"));
+	info("Attempting key");
 	digitalWrite(FONA_KEY_PIN, LOW);
 	delay(FONA_DELAY);
 	digitalWrite(FONA_KEY_PIN, HIGH);
 	delay(FONA_DELAY);
-	info(F("key attempt finished"));
+	info("key attempt finished");
 	return fona_powered_up();
 }
 
@@ -393,7 +398,7 @@ bool fonaRestart() {
 
 	// Fona MUST reinitialize
 	while (!fonaInit()) { 
-		info(F("Couldn't re-initialize Fona!"));
+		info("Couldn't re-initialize Fona!");
 		delay(1000); 
 	}
 	return true;
@@ -401,11 +406,11 @@ bool fonaRestart() {
 
 bool accelerometerInit() {
 	if (!mma.begin()) {
-		info(F("Coudln't initialize MMA8451 Accelerometer"));
+		info("Coudln't initialize MMA8451 Accelerometer");
 		return false;
 	}
 	else {
-		info(F("MMA8451 Accelerometer OK"));
+		info("MMA8451 Accelerometer OK");
 		return true;
 	}
 }
@@ -430,7 +435,7 @@ void doSleepTimer() {
 			if (sleep_cycles >= (wake_rate * 60 / 8)) {
 				// sleep expired, not critical temperature
 				Serial.begin(9600);
-				info(F("Sleep expired"));
+				info("Sleep expired");
 				should_sleep = false;
 				wake_timer_expired = true;
 				fona_wake();
@@ -438,7 +443,7 @@ void doSleepTimer() {
 			if (accelerometer_present && mma.motionDetected()) {
 				// detect motion and clear latch
 				Serial.begin(9600);
-				info(F("Motion detected"));
+				info("Motion detected");
 				should_sleep = false;
 				accelerometer_interrupt = true;
 				alert_mode = true;
@@ -461,7 +466,7 @@ void setSleep() {
 }
 
 void initWDT() {
-	info(F("Initializing Watchdog Timer"));
+	info("Initializing Watchdog Timer");
 	delay(1000);
 	/* Clear the reset flag. */
 	MCUSR &= ~(1 << WDRF);
@@ -572,7 +577,7 @@ Tracker Event Logging Functions
 ********************************************************************/
 bool logBattery() {
 	setEvent(BATTERY);
-	info(F("Sending low battery notification"));
+	info("Sending low battery notification");
 	printPostData();
 	if (!sendPostData()) return false;
 	return !postError();
@@ -580,7 +585,7 @@ bool logBattery() {
 
 bool logTemperature() {
 	setEvent(TEMPERATURE);
-	info(F("Sending temperature critical notification"));
+	info("Sending temperature critical notification");
 	printPostData();
 	if (!sendPostData()) return false;
 	return !postError();
@@ -594,7 +599,7 @@ bool logWake() {
 }
 
 bool logBoot() {
-	info(F("Starting sequence"));
+	info("Starting sequence");
 	clearBuffer();
 	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
 	setPostData(buffer, SEQUENCE_INDEX);
@@ -607,15 +612,15 @@ bool logGPS() {
 	int result = getGPS();
 
 	if (result == GPS_NO_LOCK) {
-		info(F("No GPS lock"));
+		info("No GPS lock");
 		return false;
 	}
 	if (result == GPS_NO_CHANGE) {
-		info(F("No GPS location change"));
+		info("No GPS location change");
 		setEvent(CHECKIN);
 	}
 	else {
-		info(F("GPS change"));
+		info("GPS change");
 		setEvent(GPS);
 	}
 
@@ -646,7 +651,7 @@ bool getTemperature() {
 	token = strtok_P(NULL, GPS_TOKEN);
 	token = strtok_P(NULL, GPS_TOKEN);
 	if (strlen(token) > 0) {
-		info(F("Critical battery temperature"));
+		info("Critical battery temperature");
 		notify_temperature_critical = true;
 	}
 	return true;
@@ -686,7 +691,7 @@ int getGPS() {
 
 	char * token = strtok_P(buffer, GPS_TOKEN);
 	if (token[0] == '0') {
-		info(F("No GPS lock"));
+		info("No GPS lock");
 		return GPS_NO_LOCK;
 	}
 	token = strtok_P(NULL, GPS_TOKEN);		// set next token to lock flag
@@ -719,7 +724,7 @@ int getGPS() {
 	current_time.setTime(year, month, day, hour, minute, second);
 
 	if (lockFlag == 0) {
-		info(F("No GPS lock"));
+		info("No GPS lock");
 		return GPS_NO_LOCK;
 	}
 	char * latitude = strtok_P(NULL, GPS_TOKEN);		// latitude
@@ -787,7 +792,7 @@ void setup() {
 	getBattery();
 	getTemperature();
 	if (chargeStatus == 0) {
-		info(F("Tracker is charging"));
+		info("Tracker is charging");
 	}
 	attempt(&getGPS, GPS_CHANGED);
 	attempt(&logBoot);
@@ -803,7 +808,7 @@ void loop() {
 	doSleepTimer();
 #endif
 	if (accelerometer_present && accelerometer_interrupt) {
-		info(F("Accelerometer interrupt!!!!"));
+		info("Accelerometer interrupt!!!!");
 		logWake();
 		alert_mode = true;
 	}
@@ -811,7 +816,7 @@ void loop() {
 	wake_timer_expired = true;
 #endif
 	if (wake_timer_expired && !alert_mode) {
-		info(F("Wake timer expired."));
+		info("Wake timer expired.");
 		getBattery();
 		getTemperature();
 		attempt(&logGPS);
