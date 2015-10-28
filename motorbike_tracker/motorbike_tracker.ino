@@ -231,16 +231,18 @@ bool attempt(bool (*callback)()) {
 	int attempts = 0;
 	while (!callback() && attempts < FONA_MAX_ATTEMPTS) {
 		delay(FONA_DELAY + attempts * 1000);
+		attempts++;
 	}
 	return attempts < FONA_MAX_ATTEMPTS;
 }
 
 bool attempt(int(*callback)(), int result) {
-int attempts = 0;
-while (callback() != result && attempts < FONA_MAX_ATTEMPTS) {
-	delay(FONA_DELAY + attempts * 1000);
-}
-return attempts < FONA_MAX_ATTEMPTS;
+	int attempts = 0;
+	while (callback() != result && attempts < FONA_MAX_ATTEMPTS) {
+		delay(FONA_DELAY + attempts * 1000);
+		attempts++;
+	}
+	return attempts < FONA_MAX_ATTEMPTS;
 }
 
 void debug(const __FlashStringHelper* message) {
@@ -337,11 +339,13 @@ bool fona_sleep() {
 }
 
 bool fona_wake() {
+	digitalWrite(FONA_DTR_PIN, LOW);
 	info(F("Enabling GPRS"));
 	if (!attempt(&fona_enable_gprs)) return false;
+	flushSerial();
 	info(F("Enabling GPS"));
 	if (!attempt(&fona_enable_gps)) return false;
-	digitalWrite(FONA_DTR_PIN, LOW);
+	flushSerial();
 	return true;
 }
 
@@ -358,7 +362,7 @@ bool fona_enable_gps() {
 }
 
 bool fona_disable_gps() {
-	return fona.disableGPS(true);
+	return fona.enableGPS(false);
 }
 
 bool fona_powered_up() {
@@ -773,6 +777,7 @@ void setup() {
 	pinMode(FONA_DTR_PIN, OUTPUT);
 	pinMode(FONA_KEY_PIN, OUTPUT);
 	pinMode(FONA_POWER_PIN, INPUT);
+	digitalWrite(FONA_DTR_PIN, HIGH);
 	digitalWrite(FONA_KEY_PIN, LOW);
 	clearAllData();
 	while (!Serial);
@@ -788,6 +793,20 @@ void setup() {
 	}
 	attempt(&getGPS, GPS_CHANGED);
 	attempt(&logBoot);
+
+	fona_sleep();
+	delay(10000);
+	getGPS();
+	delay(10000);
+	if (attempt(&fona_wake)) {
+		info(F("Fona wake success"));
+		attempt(&getGPS, GPS_CHANGED);
+	}
+	else {
+		info(F("Fona wake fail"));
+	}
+
+	while (1);
 #ifdef SLEEP_ENABLED
 	initWDT();
 	setSleep();
