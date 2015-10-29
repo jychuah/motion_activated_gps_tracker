@@ -31,7 +31,8 @@ User specific settings
 //#define DEBUG true
 //#define SIMULATE true
 #define INFO true
-#define FORCE_ARM  true
+//#define FORCE_ARM  true
+#define FORCE_CHARGE true
 #define SLEEP_ENABLED true
 
 #define GPS_CHANGED  0
@@ -803,14 +804,23 @@ void setup() {
 
 	getBattery();
 	getTemperature();
+#ifdef FORCE_CHARGE
+	chargeStatus = 1;
+#endif
 	if (chargeStatus == 1) {
 		info("Tracker is charging");
 #ifdef FORCE_ARM
 		force_arm = true;
 #endif
+		fona_sleep();
 		if (!force_arm) {
-			fona_sleep();
-			while (1);									// Charging only
+			while (1) {									// Charging only				
+				digitalWrite(FONA_DTR_PIN, HIGH);
+				delay(60000);
+				digitalWrite(FONA_DTR_PIN, LOW);
+				getBattery();
+				delay(1000);
+			}
 		}
 	}
 	attempt(&getGPS, GPS_CHANGED);
