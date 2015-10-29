@@ -27,13 +27,18 @@ User specific settings
 ***************************************************************************************/
 #define		APN					"fast.t-mobile.com"
 #define     UID					"d76db2b8-be35-477c-a428-2623d523fbfd"
-/**************************************************************************************/
+
+
+/**************************************************************************************
+Debugging pre-processor definitions
+
+**************************************************************************************/
 //#define DEBUG true
 //#define SIMULATE true
 #define INFO true
 //#define FORCE_ARM  true
-#define FORCE_CHARGE true
-#define SLEEP_ENABLED true
+//#define FORCE_CHARGE true
+//#define SLEEP_DISABLED true
 
 #define GPS_CHANGED  0
 #define GPS_NO_CHANGE 1
@@ -815,9 +820,9 @@ void setup() {
 		fona_sleep();
 		if (!force_arm) {
 			while (1) {									// Charging only				
-				digitalWrite(FONA_DTR_PIN, HIGH);
-				delay(60000);
 				digitalWrite(FONA_DTR_PIN, LOW);
+				delay(60000);
+				digitalWrite(FONA_DTR_PIN, HIGH);
 				getBattery();
 				delay(1000);
 			}
@@ -826,14 +831,14 @@ void setup() {
 	attempt(&getGPS, GPS_CHANGED);
 	attempt(&logBoot);
 
-#ifdef SLEEP_ENABLED
+#ifndef SLEEP_DISABLED
 	initWDT();
 	setSleep();
 #endif
 }
 
 void loop() {
-#ifdef SLEEP_ENABLED
+#ifndef SLEEP_DISABLED
 	doSleepTimer();
 #endif
 	if (accelerometer_present && accelerometer_interrupt) {
@@ -841,7 +846,7 @@ void loop() {
 		logWake();
 		alert_mode = true;
 	}
-#ifndef SLEEP_ENABLED
+#ifdef SLEEP_DISABLED
 	wake_timer_expired = true;
 #endif
 	if (wake_timer_expired && !alert_mode) {
@@ -870,7 +875,7 @@ void loop() {
 			setSleep();
 		}
 	}
-#ifndef SLEEP_ENABLED
+#ifdef SLEEP_DISABLED
 	delay(8000);
 #endif
 }
