@@ -117,7 +117,7 @@ DateTime current_time = DateTime(1970, 1, 1, 0, 0, 0);
 volatile int sleep_cycles = 0;
 volatile int f_wdt = 1;
 uint8_t type;
-int wake_rate = 1;
+int wake_rate = 5;
 float lat = 0, lng = 0;
 int chargeStatus = 0;
 int battPercent = 100;
@@ -423,17 +423,26 @@ Sleep Functions
 ********************************************************************/
 
 void doSleepTimer() {
+	Serial.begin(9600);
+	info("Sleep timer method");
+	Serial.end();
+	delay(50);
 	if (notify_temperature_critical && should_sleep) {
 		// permanent sleep due to critical temperature;
+		info("Critical temperature sleep");
 		enterSleep();
 	}
 	else {
 		if (should_sleep) {
-			if (sleep_cycles < (wake_rate * 60 / 8)) {
+			if (sleep_cycles < (wake_rate * 60 / 16)) {
+				Serial.begin(9600);
+				info("Sleep cycle");
+				Serial.end();
+				delay(50);
 				sleep_cycles++;
 				enterSleep();
 			}
-			if (sleep_cycles >= (wake_rate * 60 / 8)) {
+			if (sleep_cycles >= (wake_rate * 60 / 16)) {
 				// sleep expired, not critical temperature
 				Serial.begin(9600);
 				info("Sleep expired");
