@@ -511,7 +511,7 @@ ISR(WDT_vect)
 
 void enterSleep(void)
 {
-	set_sleep_mode(SLEEP_MODE_PWR_DOWN);   
+	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 	sleep_enable();
 	set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 	cli();
@@ -536,7 +536,11 @@ bool postError(void) {
 #ifdef SIMULATE
 	return false;
 #endif
-	return strncmp_P(buffer, ERROR, strlen(ERROR)) == 0;
+	bool result = (strncmp_P(buffer, ERROR, strlen(ERROR)) == 0);
+	if (!result) {
+		info("Received ERROR from server!");
+	}
+	return result;
 }
 bool postOK(void) {
 	return strncmp_P(buffer, OK, strlen(OK)) == 0;
