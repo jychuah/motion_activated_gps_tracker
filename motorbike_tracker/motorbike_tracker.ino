@@ -243,13 +243,15 @@ bool attempt(bool (*callback)()) {
 	return attempts < FONA_MAX_ATTEMPTS;
 }
 
-bool attempt(int(*callback)(), int result) {
-	int attempts = 0;
-	while (callback() != result && attempts < FONA_MAX_ATTEMPTS) {
+int attempt(int(*callback)(), int result) {
+	int attempts = 1;
+	int callbackResult = callback();
+	while (callbackResult != result && attempts < FONA_MAX_ATTEMPTS) {
 		delay(FONA_DELAY + attempts * 1000);
+		callbackResult = callback();
 		attempts++;
 	}
-	return attempts < FONA_MAX_ATTEMPTS;
+	return callbackResult;
 }
 
 void debug(const __FlashStringHelper* message) {
@@ -557,6 +559,7 @@ bool sendPostData() {
 #ifdef SIMULATE
 	return true;
 #endif
+	printPostData();
 	clearBuffer();
 
 	uint16_t statuscode;
@@ -616,12 +619,37 @@ bool logWake() {
 
 bool logBoot() {
 	info("Starting sequence");
-	clearBuffer();
-	sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
-	setPostData(buffer, SEQUENCE_INDEX);
+	bool serverTimestamp = false;
+	int result = attempt(&getGPS, GPS_CHANGED);
+	if (current_time.unixtime() < 1444000000) {
+		info("Invalid timestamp -- use server timestamp as sequence_id");
+		clearPostData(SEQUENCE_INDEX, SEQUENCE_LENGTH);
+		clearPostData(TIMESTAMP_INDEX, TIMESTAMP_LENGTH);
+		serverTimestamp = true;
+	}
+	else {
+		clearBuffer();
+		info("Use GPS timestamp as sequence_id");
+		sprintf_P(buffer, TIMESTAMP_FORMAT, current_time.unixtime());
+		setPostData(buffer, SEQUENCE_INDEX);
+	}
 	setEvent(BOOT);
 	if (!sendPostData()) return false;
-	return !postError();
+	if (postError()) {
+		return false;
+	}
+	if (serverTimestamp) {
+		info("Server timestamp:");
+#ifdef INFO
+		Serial.println(buffer);
+#endif
+		if (strlen(buffer) < 10) {
+			info("Bad timestamp from server!");
+			return false;
+		}
+		setPostData(buffer, SEQUENCE_INDEX);
+	}
+	return true;
 }
 
 bool logGPS() {
@@ -828,7 +856,6 @@ void setup() {
 			}
 		}
 	}
-	attempt(&getGPS, GPS_CHANGED);
 	attempt(&logBoot);
 
 #ifndef SLEEP_DISABLED
