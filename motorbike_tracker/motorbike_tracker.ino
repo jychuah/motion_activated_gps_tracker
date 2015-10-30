@@ -621,6 +621,7 @@ bool logBoot() {
 	info("Starting sequence");
 	bool serverTimestamp = false;
 	int result = attempt(&getGPS, GPS_CHANGED);
+	Serial.println(current_time.unixtime());
 	if (current_time.unixtime() < 1444000000) {
 		info("Invalid timestamp -- use server timestamp as sequence_id");
 		clearPostData(SEQUENCE_INDEX, SEQUENCE_LENGTH);
