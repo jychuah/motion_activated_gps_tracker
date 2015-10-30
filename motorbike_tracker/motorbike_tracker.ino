@@ -60,6 +60,7 @@ Debugging pre-processor definitions
 // Event strings
 const char BATTERY[] PROGMEM = "battery";
 const char GPS[] PROGMEM = "gps";
+const char NOGPS[] PROGMEM = "nogps";
 const char CHECKIN[] PROGMEM = "checkin";
 const char WAKE_EVENT[] PROGMEM = "wake";
 const char BOOT[] PROGMEM = "boot";
@@ -122,8 +123,11 @@ bool hardware_rtc_present = false;
 DateTime current_time = DateTime(1970, 1, 1, 0, 0, 0);
 volatile int sleep_cycles = 0;
 volatile int f_wdt = 1;
+volatile int checkin_cycles = 0;
 uint8_t type;
+int last_gps_operation = -100;
 int wake_rate = 5;
+int checkin_rate = 30;
 float lat = 0, lng = 0;
 int chargeStatus = 0;
 int battPercent = 100;
@@ -243,10 +247,10 @@ bool attempt(bool (*callback)()) {
 	return attempts < FONA_MAX_ATTEMPTS;
 }
 
-int attempt(int(*callback)(), int result) {
+int attempt(int(*callback)(), int fail_result) {
 	int attempts = 1;
 	int callbackResult = callback();
-	while (callbackResult != result && attempts < FONA_MAX_ATTEMPTS) {
+	while (callbackResult == fail_result && attempts < FONA_MAX_ATTEMPTS) {
 		delay(FONA_DELAY + attempts * 1000);
 		callbackResult = callback();
 		attempts++;
@@ -594,33 +598,36 @@ bool sendPostData() {
 Tracker Event Logging Functions
 
 ********************************************************************/
+bool sendToServer() {
+	if (!sendPostData()) return false;
+	if (!postError()) {
+		readConfig();
+		return true;
+	}
+	return false;
+}
+
 bool logBattery() {
 	setEvent(BATTERY);
 	info("Sending low battery notification");
-	printPostData();
-	if (!sendPostData()) return false;
-	return !postError();
+	return sendToServer();
 }
 
 bool logTemperature() {
 	setEvent(TEMPERATURE);
 	info("Sending temperature critical notification");
-	printPostData();
-	if (!sendPostData()) return false;
-	return !postError();
+	return sendToServer();
 }
 
 bool logWake() {
 	setEvent(WAKE_EVENT);
-	printPostData();
-	if (!sendPostData()) return false;
-	return !postError();
+	return sendToServer();
 }
 
 bool logBoot() {
 	info("Starting sequence");
 	bool serverTimestamp = false;
-	int result = attempt(&getGPS, GPS_CHANGED);
+	int result = attempt(&getGPS, GPS_NO_LOCK);
 	Serial.println(current_time.unixtime());
 	if (current_time.unixtime() < 1444000000) {
 		info("Invalid timestamp -- use server timestamp as sequence_id");
@@ -644,33 +651,81 @@ bool logBoot() {
 #ifdef INFO
 		Serial.println(buffer);
 #endif
-		if (strlen(buffer) < 10) {
+		char* token = strtok_P(buffer, GPS_TOKEN);		// first token should be timestamp
+
+		if (strlen(token) < 10) {
 			info("Bad timestamp from server!");
 			return false;
 		}
+		token = strtok_P(NULL, GPS_TOKEN);
+		wake_rate = atoi(token);
+		token = strtok_P(NULL, GPS_TOKEN);
+		checkin_rate = atoi(token);
+		checkRates();
 		setPostData(buffer, SEQUENCE_INDEX);
+		printPostData();
+		return true;
 	}
+	readConfig();
 	return true;
 }
 
-bool logGPS() {
-	int result = getGPS();
+bool checkRates() {
+	if (wake_rate == 0 || checkin_rate == 0) {
+		info("Invalid rates");
+		wake_rate = 5;
+		checkin_rate = 30;
+		return false;
+	}
+	else {
+		info("Got rates");
+		Serial.println(wake_rate);
+		Serial.println(checkin_rate);
+		return true;
+	}
+}
 
+bool readConfig() {
+	char* token = strtok_P(buffer, GPS_TOKEN);
+	token = strtok_P(NULL, GPS_TOKEN);
+	wake_rate = atoi(token);
+	token = strtok_P(NULL, GPS_TOKEN);
+	checkin_rate = atoi(token);
+	checkRates();
+}
+
+bool logGPS() {
+	int result = attempt(&getGPS, GPS_NO_LOCK);
+	if (result != GPS_CHANGED && result == last_gps_operation) {
+		checkin_cycles++;
+	}
+	else {
+		last_gps_operation = result;
+		checkin_cycles = 0;
+	}
 	if (result == GPS_NO_LOCK) {
 		info("No GPS lock");
-		return false;
+		setEvent(NOGPS);
 	}
 	if (result == GPS_NO_CHANGE) {
 		info("No GPS location change");
 		setEvent(CHECKIN);
 	}
-	else {
+	if (result == GPS_CHANGED) {
 		info("GPS change");
 		setEvent(GPS);
 	}
-
-	if (!sendPostData()) return false;
-	return !postError();
+	bool sendresult = false;
+	if (checkin_cycles == 0 || checkin_cycles > checkin_rate / wake_rate) {
+		info("Sending GPS event"); 
+		sendresult = attempt(&sendToServer);
+		if (sendresult) {
+			checkin_cycles = 0;
+		}
+	}
+	info("Checkin cycles:");
+	Serial.println(checkin_cycles);
+	return sendresult;
 }
 
 /*****************************************************
@@ -881,7 +936,7 @@ void loop() {
 		info("Wake timer expired.");
 		getBattery();
 		getTemperature();
-		attempt(&logGPS);
+		logGPS();
 		if (notify_battery_low) {
 			logBattery();
 		}
@@ -889,19 +944,6 @@ void loop() {
 			logTemperature();
 		}
 		setSleep();
-	}
-	if (alert_mode) {
-		if (stationaryCount > 0 && accelerometer_present && mma.motionDetected()) {
-			logWake();
-			stationaryCount = 0;
-		}
-		attempt(&logGPS);
-		delay(5000);
-		if (stationaryCount > 120) {
-			// if more than 10 minutes of stationary, turn off alert
-			alert_mode = false;
-			setSleep();
-		}
 	}
 #ifdef SLEEP_DISABLED
 	delay(8000);
