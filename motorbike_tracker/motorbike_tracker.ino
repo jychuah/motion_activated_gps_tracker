@@ -700,11 +700,10 @@ bool readConfig() {
 
 bool logGPS() {
 	int result = attempt(&getGPS, GPS_NO_LOCK);
-	if (result != GPS_CHANGED && result == last_gps_operation) {
+	if (result == last_gps_operation) {
 		checkin_cycles++;
 	}
 	else {
-		last_gps_operation = result;
 		checkin_cycles = 0;
 	}
 	if (result == GPS_NO_LOCK) {
@@ -718,15 +717,17 @@ bool logGPS() {
 	if (result == GPS_CHANGED) {
 		info("GPS change");
 		setEvent(GPS);
+		checkin_cycles = 0;
 	}
 	bool sendresult = false;
-	if (checkin_cycles == 0 || checkin_cycles > checkin_rate / wake_rate) {
+	if (checkin_cycles == 0 || checkin_cycles >= checkin_rate / wake_rate) {
 		info("Sending GPS event"); 
 		sendresult = attempt(&sendToServer);
 		if (sendresult) {
 			checkin_cycles = 0;
 		}
 	}
+	last_gps_operation = result;
 	info("Checkin cycles:");
 	Serial.println(checkin_cycles);
 	return sendresult;
