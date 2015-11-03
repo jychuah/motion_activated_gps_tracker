@@ -115,6 +115,11 @@ char postdata[] = "{ \"uid\" : \"axxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxz\", "
 #define BUFFER_LENGTH 120
 char buffer[BUFFER_LENGTH];
 
+#define MODE_START		-1
+#define MODE_CHARGE		0
+#define MODE_WATCHDOG	1
+#define MODE_TRACKER	2
+
 // Tracker status info
 
 bool accelerometer_present = false;
@@ -133,6 +138,8 @@ int chargeStatus = 0;
 int battPercent = 100;
 int battMilliVolts = 5000;
 int stationaryCount = 0;
+
+int mode = MODE_START;
 
 // Tracker state flags
 
@@ -462,7 +469,7 @@ void doSleepTimer() {
 				wake_timer_expired = true;
 				fona_wake();
 			}
-			if (accelerometer_present && mma.motionDetected()) {
+			if (mode == MODE_WATCHDOG && accelerometer_present && mma.motionDetected()) {
 				// detect motion and clear latch
 				Serial.begin(9600);
 				info("Motion detected");
@@ -537,7 +544,7 @@ bool postError(void) {
 	return false;
 #endif
 	bool result = (strncmp_P(buffer, ERROR, strlen(ERROR)) == 0);
-	if (!result) {
+	if (result) {
 		info("Received ERROR from server!");
 	}
 	return result;
@@ -696,6 +703,11 @@ bool readConfig() {
 	token = strtok_P(NULL, GPS_TOKEN);
 	checkin_rate = atoi(token);
 	checkRates();
+}
+
+bool logSleep() {
+	setEvent(SLEEP);
+	return sendToServer();
 }
 
 bool logGPS() {
@@ -899,26 +911,30 @@ void setup() {
 	getBattery();
 	getTemperature();
 #ifdef FORCE_CHARGE
-	chargeStatus = 1;
+	mode = MODE_CHARGE;
 #endif
-	if (chargeStatus == 1) {
+	if (mode == MODE_CHARGE) {
 		info("Tracker is charging");
 #ifdef FORCE_ARM
 		force_arm = true;
 #endif
 		fona_sleep();
-		if (!force_arm) {
-			while (1) {									// Charging only				
-				digitalWrite(FONA_DTR_PIN, LOW);
-				delay(60000);
-				digitalWrite(FONA_DTR_PIN, HIGH);
-				getBattery();
-				delay(1000);
-			}
+		while (1) {									// Charging only				
+			digitalWrite(FONA_DTR_PIN, LOW);
+			delay(60000);
+			digitalWrite(FONA_DTR_PIN, HIGH);
+			getBattery();
+			delay(1000);
 		}
 	}
 	attempt(&logBoot);
-
+	if (accelerometer_present) {
+		attempt(&logSleep);
+		mode = MODE_WATCHDOG;
+	}
+	else {
+		mode = MODE_TRACKER;
+	}
 #ifndef SLEEP_DISABLED
 	initWDT();
 	setSleep();
@@ -929,15 +945,16 @@ void loop() {
 #ifndef SLEEP_DISABLED
 	doSleepTimer();
 #endif
-	if (accelerometer_present && accelerometer_interrupt) {
+	if (mode == MODE_WATCHDOG && accelerometer_present && accelerometer_interrupt) {
 		info("Accelerometer interrupt!!!!");
-		logWake();
-		alert_mode = true;
+		attempt(&logWake);
+		mode = MODE_TRACKER;
+		setSleep();
 	}
 #ifdef SLEEP_DISABLED
 	wake_timer_expired = true;
 #endif
-	if (wake_timer_expired && !alert_mode) {
+	if (wake_timer_expired) {
 		info("Wake timer expired.");
 		getBattery();
 		getTemperature();
