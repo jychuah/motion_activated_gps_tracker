@@ -48,7 +48,7 @@ Debugging pre-processor definitions
 #define FONA_RX 2
 #define FONA_TX 3
 #define FONA_RST 4
-#define FONA_MAX_ATTEMPTS 6
+#define FONA_MAX_ATTEMPTS 10
 #define FONA_DELAY 5000
 #define FONA_DTR_PIN 9
 #define FONA_KEY_PIN 8
