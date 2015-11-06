@@ -54,6 +54,7 @@ Debugging pre-processor definitions
 #define FONA_KEY_PIN 8
 #define FONA_POWER_PIN 7
 #define	CHARGE_DETECT_PIN A0
+#define LED_OUTPUT_PIN 13
 #define BAUD_RATE 57600
 #define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
 
@@ -316,6 +317,22 @@ uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 Hardware Init Functions
 
 ********************************************************************/
+
+void blinkBatteryStatus() {
+	getBattery();
+	digitalWrite(LED_OUTPUT_PIN, LOW);
+	delay(250);
+	digitalWrite(LED_OUTPUT_PIN, HIGH);
+	delay(1000);
+	digitalWrite(LED_OUTPUT_PIN, LOW);
+	delay(250);
+	for (int i = 0; i < battPercent / 25; i++) {
+		digitalWrite(LED_OUTPUT_PIN, HIGH);
+		delay(25);
+		digitalWrite(LED_OUTPUT_PIN, LOW);
+		delay(250);
+	}
+}
 
 bool fonaColdStart() {
 	info("FONA basic test");
@@ -893,6 +910,8 @@ int getGPS() {
 	return GPS_CHANGED;
 }
 
+
+
 /*****************************************************************
 
 Setup and Loop
@@ -907,6 +926,8 @@ void setup() {
 	digitalWrite(FONA_KEY_PIN, LOW);
 	bool force_arm = false;
 	pinMode(CHARGE_DETECT_PIN, INPUT_PULLUP);
+	pinMode(LED_OUTPUT_PIN, OUTPUT);
+	digitalWrite(LED_OUTPUT_PIN, HIGH);
 
 	if (analogRead(CHARGE_DETECT_PIN) == 1023) {
 		mode = MODE_CHARGE;
@@ -921,14 +942,13 @@ void setup() {
 		fonaColdStart();
 		getBattery();
 		getTemperature();
-
+		blinkBatteryStatus();
 		fona_sleep();
 		while (1) {									// Charging only				
 			digitalWrite(FONA_DTR_PIN, LOW);
-			delay(60000);
+			delay(30000);
 			digitalWrite(FONA_DTR_PIN, HIGH);
-			getBattery();
-			delay(1000);
+			blinkBatteryStatus();
 		}
 	}
 
