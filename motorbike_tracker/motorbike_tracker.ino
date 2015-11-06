@@ -908,7 +908,7 @@ void setup() {
 	bool force_arm = false;
 	pinMode(CHARGE_DETECT_PIN, INPUT_PULLUP);
 
-	if (digitalRead(CHARGE_DETECT_PIN) == HIGH) {
+	if (analogRead(CHARGE_DETECT_PIN) == 1023) {
 		mode = MODE_CHARGE;
 	}
 #ifdef FORCE_CHARGE
