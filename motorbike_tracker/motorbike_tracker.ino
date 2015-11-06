@@ -48,7 +48,7 @@ Debugging pre-processor definitions
 #define FONA_RX 2
 #define FONA_TX 3
 #define FONA_RST 4
-#define FONA_MAX_ATTEMPTS 10
+#define FONA_MAX_ATTEMPTS 5
 #define FONA_DELAY 5000
 #define FONA_DTR_PIN 9
 #define FONA_KEY_PIN 8
@@ -318,6 +318,13 @@ Hardware Init Functions
 
 ********************************************************************/
 
+void blink(int length, int pause) {
+	digitalWrite(LED_OUTPUT_PIN, HIGH);
+	delay(length);
+	digitalWrite(LED_OUTPUT_PIN, LOW);
+	delay(pause);
+}
+
 void blinkBatteryStatus() {
 	getBattery();
 	digitalWrite(LED_OUTPUT_PIN, LOW);
@@ -327,10 +334,7 @@ void blinkBatteryStatus() {
 	digitalWrite(LED_OUTPUT_PIN, LOW);
 	delay(250);
 	for (int i = 0; i < battPercent / 25; i++) {
-		digitalWrite(LED_OUTPUT_PIN, HIGH);
-		delay(25);
-		digitalWrite(LED_OUTPUT_PIN, LOW);
-		delay(250);
+		blink(25, 250);
 	}
 }
 
@@ -765,6 +769,8 @@ bool logGPS() {
 	last_gps_operation = result;
 	info("Checkin cycles:");
 	Serial.println(checkin_cycles);
+
+
 	return sendresult;
 }
 
@@ -824,6 +830,14 @@ bool getBattery() {
 
 
 int getGPS() {
+
+	blink(10, 100);
+	blink(10, 100);
+	delay(250);
+	blink(10, 100);
+	blink(10, 100);
+	delay(250);
+
 	clearBuffer();
 
 	char num[16] = { 0 };
@@ -952,7 +966,6 @@ void setup() {
 		}
 	}
 
-
 	clearAllData();
 	while (!Serial);
 	Serial.begin(BAUD_RATE);
@@ -960,17 +973,24 @@ void setup() {
 	while (!fonaInit());									// FONA must init!
 	accelerometer_present = accelerometerInit();
 
+	blinkBatteryStatus();
+
 	getBattery();
 	getTemperature();
-
 
 	attempt(&logBoot);
 	if (accelerometer_present) {
 		attempt(&logSleep);
+		for (int i = 0; i < 8; i++) {
+			blink(500, 500);
+		}
 		mode = MODE_WATCHDOG;
 	}
 	else {
 		mode = MODE_TRACKER;
+	}
+	for (int i = 0; i < 20; i++) {
+		blink(25, 100);
 	}
 #ifndef SLEEP_DISABLED
 	initWDT();
@@ -984,6 +1004,9 @@ void loop() {
 #endif
 	if (mode == MODE_WATCHDOG && accelerometer_present && accelerometer_interrupt) {
 		info("Accelerometer interrupt!!!!");
+		for (int i = 0; i < 20; i++) {
+			blink(25, 100);
+		}
 		attempt(&logWake);
 		mode = MODE_TRACKER;
 		setSleep();
