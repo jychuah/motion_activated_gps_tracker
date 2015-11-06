@@ -54,7 +54,7 @@ Debugging pre-processor definitions
 #define FONA_KEY_PIN 8
 #define FONA_POWER_PIN 7
 #define	CHARGE_DETECT_PIN A0
-
+#define BAUD_RATE 57600
 #define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
 
 
@@ -321,7 +321,7 @@ bool fonaColdStart() {
 	info("FONA basic test");
 	info("Initializing....(May take 3 seconds)");
 
-	fonaSerial->begin(9600);
+	fonaSerial->begin(BAUD_RATE);
 
 	if (!fona.begin(*fonaSerial)) {
 		info("Couldn't find FONA");
@@ -448,7 +448,7 @@ Sleep Functions
 ********************************************************************/
 
 void doSleepTimer() {
-	Serial.begin(9600);
+	Serial.begin(BAUD_RATE);
 	info("Sleep timer method");
 	Serial.end();
 	delay(50);
@@ -460,7 +460,7 @@ void doSleepTimer() {
 	else {
 		if (should_sleep) {
 			if (sleep_cycles < (wake_rate * 60 / 16)) {
-				Serial.begin(9600);
+				Serial.begin(BAUD_RATE);
 				info("Sleep cycle");
 				Serial.end();
 				delay(50);
@@ -469,7 +469,7 @@ void doSleepTimer() {
 			}
 			if (sleep_cycles >= (wake_rate * 60 / 16)) {
 				// sleep expired, not critical temperature
-				Serial.begin(9600);
+				Serial.begin(BAUD_RATE);
 				info("Sleep expired");
 				should_sleep = false;
 				wake_timer_expired = true;
@@ -477,7 +477,7 @@ void doSleepTimer() {
 			}
 			if (mode == MODE_WATCHDOG && accelerometer_present && mma.motionDetected()) {
 				// detect motion and clear latch
-				Serial.begin(9600);
+				Serial.begin(BAUD_RATE);
 				info("Motion detected");
 				should_sleep = false;
 				accelerometer_interrupt = true;
@@ -916,7 +916,7 @@ void setup() {
 #endif
 
 	if (mode == MODE_CHARGE) {
-		Serial.begin(9600);
+		Serial.begin(BAUD_RATE);
 		info("Tracker is charging");
 		fonaColdStart();
 		getBattery();
@@ -935,7 +935,7 @@ void setup() {
 
 	clearAllData();
 	while (!Serial);
-	Serial.begin(9600);
+	Serial.begin(BAUD_RATE);
 
 	while (!fonaInit());									// FONA must init!
 	accelerometer_present = accelerometerInit();
