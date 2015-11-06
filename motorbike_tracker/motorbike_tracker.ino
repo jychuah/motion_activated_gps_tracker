@@ -53,6 +53,7 @@ Debugging pre-processor definitions
 #define FONA_DTR_PIN 9
 #define FONA_KEY_PIN 8
 #define FONA_POWER_PIN 7
+#define	CHARGE_DETECT_PIN A0
 
 #define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
 
@@ -316,7 +317,7 @@ Hardware Init Functions
 
 ********************************************************************/
 
-bool fonaInit() {
+bool fonaColdStart() {
 	info("FONA basic test");
 	info("Initializing....(May take 3 seconds)");
 
@@ -328,6 +329,11 @@ bool fonaInit() {
 	}
 
 	type = fona.type();
+	return true;
+}
+
+bool fonaInit() {
+	if (!fonaColdStart()) return false;
 
 	// Print SIM card IMEI number.
 	clearBuffer();
@@ -900,6 +906,32 @@ void setup() {
 	digitalWrite(FONA_DTR_PIN, LOW);
 	digitalWrite(FONA_KEY_PIN, LOW);
 	bool force_arm = false;
+	pinMode(CHARGE_DETECT_PIN, INPUT_PULLUP);
+
+	if (digitalRead(CHARGE_DETECT_PIN) == HIGH) {
+		mode = MODE_CHARGE;
+	}
+#ifdef FORCE_CHARGE
+	mode = MODE_CHARGE;
+#endif
+
+	if (mode == MODE_CHARGE) {
+		Serial.begin(9600);
+		info("Tracker is charging");
+		fonaColdStart();
+		getBattery();
+		getTemperature();
+
+		fona_sleep();
+		while (1) {									// Charging only				
+			digitalWrite(FONA_DTR_PIN, LOW);
+			delay(60000);
+			digitalWrite(FONA_DTR_PIN, HIGH);
+			getBattery();
+			delay(1000);
+		}
+	}
+
 
 	clearAllData();
 	while (!Serial);
@@ -910,23 +942,8 @@ void setup() {
 
 	getBattery();
 	getTemperature();
-#ifdef FORCE_CHARGE
-	mode = MODE_CHARGE;
-#endif
-	if (mode == MODE_CHARGE) {
-		info("Tracker is charging");
-#ifdef FORCE_ARM
-		force_arm = true;
-#endif
-		fona_sleep();
-		while (1) {									// Charging only				
-			digitalWrite(FONA_DTR_PIN, LOW);
-			delay(60000);
-			digitalWrite(FONA_DTR_PIN, HIGH);
-			getBattery();
-			delay(1000);
-		}
-	}
+
+
 	attempt(&logBoot);
 	if (accelerometer_present) {
 		attempt(&logSleep);
