@@ -113,31 +113,6 @@ class Adafruit_FONA : public Stream {
   // IMEI
   uint8_t getIMEI(char *imei);
 
-  // set Audio output
-  boolean setAudio(uint8_t a);
-  boolean setVolume(uint8_t i);
-  uint8_t getVolume(void);
-  boolean playToolkitTone(uint8_t t, uint16_t len);
-  boolean setMicVolume(uint8_t a, uint8_t level);
-  boolean playDTMF(char tone);
-
-  // FM radio functions.
-  boolean tuneFMradio(uint16_t station);
-  boolean FMradio(boolean onoff, uint8_t a = FONA_HEADSETAUDIO);
-  boolean setFMVolume(uint8_t i);
-  int8_t getFMVolume();
-  int8_t getFMSignalLevel(uint16_t station);
-
-  // SMS handling
-  boolean setSMSInterrupt(uint8_t i);
-  uint8_t getSMSInterrupt(void);
-  int8_t getNumSMS(void);
-  boolean readSMS(uint8_t i, char *smsbuff, uint16_t max, uint16_t *readsize);
-  boolean sendSMS(char *smsaddr, char *smsmsg);
-  boolean deleteSMS(uint8_t i);
-  boolean getSMSSender(uint8_t i, char *sender, int senderlen);
-  boolean sendUSSD(char *ussdmsg, char *ussdbuff, uint16_t maxlen, uint16_t *readlen);
-
   // Time
   boolean enableNetworkTimeSync(boolean onoff);
   boolean enableNTPTimeSync(boolean onoff, const __FlashStringHelper *ntpserver=0);

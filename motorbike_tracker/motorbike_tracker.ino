@@ -35,7 +35,7 @@ Debugging pre-processor definitions
 **************************************************************************************/
 //#define DEBUG true
 //#define SIMULATE true
-#define INFO true
+//#define INFO true
 //#define FORCE_ARM  true
 //#define FORCE_CHARGE true
 //#define SLEEP_DISABLED true
