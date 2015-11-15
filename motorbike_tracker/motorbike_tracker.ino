@@ -25,7 +25,7 @@ BSD license, all text above must be included in any redistribution
 /**************************************************************************************
 User specific settings
 ***************************************************************************************/
-#define		APN					"fast.t-mobile.com"
+#define		  APN					"fast.t-mobile.com"
 #define     UID					"d76db2b8-be35-477c-a428-2623d523fbfd"
 
 
@@ -35,7 +35,7 @@ Debugging pre-processor definitions
 **************************************************************************************/
 //#define DEBUG true
 //#define SIMULATE true
-//#define INFO true
+#define INFO true
 //#define FORCE_ARM  true
 //#define FORCE_CHARGE true
 //#define SLEEP_DISABLED true
@@ -152,18 +152,17 @@ volatile bool notify_temperature_critical = false;
 volatile bool should_sleep = true;
 volatile bool alert_mode = false;
 
-/*******************************************************************
+// Utility methods
 
-Utility methods
-
-********************************************************************/
-#define clearBuffer()		memset(buffer, 0, BUFFER_LENGTH)
+void clearBuffer() {
+  memset(buffer, 0, BUFFER_LENGTH);
+}
 
 void printPostData() {
 #ifdef DEBUG
 	Serial.println(F("**** START POST DATA **** "));
-
 	char buff[60] = { 0 };
+
 	Serial.print(F("UID: "));
 	strncpy(buff, &postdata[UID_INDEX], UID_LENGTH);
 	Serial.println(buff);
@@ -227,11 +226,29 @@ void printPostData() {
 	Serial.println(postdata);
 	Serial.println(F("**** END POST DATA ****"));
 #endif
+
 }
 
 void flushSerial() {
 	while (Serial.available())
 		Serial.read();
+}
+
+void setPostData(char *data, int index) {
+  int length = strlen(data);
+  if (data[strlen(data)] == 0) {
+    length = length - 1;
+  }
+  strncpy(&postdata[index], data, strlen(data));
+}
+
+void clearPostData(int index, int length) {
+  memset(&postdata[index], ' ', length);
+}
+
+void setEvent(const char *event) {
+  clearPostData(TYPE_INDEX, TYPE_LENGTH); 
+  strncpy_P(&postdata[TYPE_INDEX], event, strlen_P(event));
 }
 
 void clearAllData() {
@@ -247,7 +264,11 @@ void clearAllData() {
 	printPostData();
 }
 
-bool attempt(bool (*callback)()) {
+typedef bool (*BoolCallback) ();
+
+bool attempt(BoolCallback callback);
+
+bool attempt(BoolCallback callback) {
 	int attempts = 0;
 	while (!callback() && attempts < FONA_MAX_ATTEMPTS) {
 		delay(FONA_DELAY + attempts * 1000);
@@ -256,7 +277,11 @@ bool attempt(bool (*callback)()) {
 	return attempts < FONA_MAX_ATTEMPTS;
 }
 
-int attempt(int(*callback)(), int fail_result) {
+typedef int (*IntCallback)();
+
+int attempt(IntCallback callback, int fail_result);
+
+int attempt(IntCallback callback, int fail_result) {
 	int attempts = 1;
 	int callbackResult = callback();
 	while (callbackResult == fail_result && attempts < FONA_MAX_ATTEMPTS) {
@@ -278,13 +303,7 @@ void debug(const char* message) {
 	Serial.println(message);
 #endif
 }
-/*
-void info(const __FlashStringHelper* message) {
-#ifdef INFO
-	Serial.println(message);
-#endif
-}
-*/
+
 #ifdef INFO
 #define		info(a)	Serial.println(F(a));
 #else
@@ -310,13 +329,7 @@ Adafruit_MMA8451 mma = Adafruit_MMA8451();
 
 uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
-
-
-/*******************************************************************
-
-Hardware Init Functions
-
-********************************************************************/
+// Hardware Init Functions
 
 void blink(int length, int pause) {
 	digitalWrite(LED_OUTPUT_PIN, HIGH);
@@ -372,11 +385,11 @@ bool fonaInit() {
 	bool result = false;
 
 	info("Enabling GPRS");
-	result = attempt(&fona_enable_gprs);
+	result = attempt(fona_enable_gprs);
 	if (!result) return false;
 	
 	info("Enabling GPS");
-	result = attempt(&fona_enable_gps);
+	result = attempt(fona_enable_gps);
 	if (!result) return false;
 
 	fona.enableRTC(true);
@@ -402,10 +415,10 @@ bool fona_wake() {
 	digitalWrite(FONA_DTR_PIN, LOW);
 	fona.enableSleep(false);
 	info("Enabling GPRS");
-	if (!attempt(&fona_enable_gprs)) return false;
+	if (!attempt(fona_enable_gprs)) return false;
 	flushSerial();
 	info("Enabling GPS");
-	if (!attempt(&fona_enable_gps)) return false;
+	if (!attempt(fona_enable_gps)) return false;
 	flushSerial();
 	return true;
 }
@@ -441,7 +454,7 @@ bool fona_key() {
 }
 
 bool fonaRestart() {
-	if (!attempt(&fona_key)) return false;
+	if (!attempt(fona_key)) return false;
 
 	// Fona MUST reinitialize
 	while (!fonaInit()) { 
@@ -462,11 +475,7 @@ bool accelerometerInit() {
 	}
 }
 
-/*******************************************************************
-
-Sleep Functions
-
-********************************************************************/
+// Sleep Functions
 
 void doSleepTimer() {
 	Serial.begin(BAUD_RATE);
@@ -524,18 +533,9 @@ void setSleep() {
 void initWDT() {
 	info("Initializing Watchdog Timer");
 	delay(1000);
-	/* Clear the reset flag. */
 	MCUSR &= ~(1 << WDRF);
-
-	/* In order to change WDE or the prescaler, we need to
-	* set WDCE (This will allow updates for 4 clock cycles).
-	*/
 	WDTCSR |= (1 << WDCE) | (1 << WDE);
-
-	/* set new watchdog timeout prescaler value */
-	WDTCSR = 1 << WDP0 | 1 << WDP3; /* 8.0 seconds */
-
-	/* Enable the WD interrupt (note no reset). */
+	WDTCSR = 1 << WDP0 | 1 << WDP3;  // 16 seconds?
 	WDTCSR |= _BV(WDIE);
 }
 
@@ -552,20 +552,14 @@ void enterSleep(void)
 	sleep_bod_disable();
 	sei();
 	sleep_cpu();
-	/* Now enter sleep mode. */
 	sleep_mode();
-	/* The program will continue from here after the WDT timeout*/
-	sleep_disable(); /* First thing to do is disable sleep. */
-	/* Re-enable the peripherals. */
+	sleep_disable();
 	power_all_enable();
 }
 
 
-/*******************************************************************
+// Post Functions
 
-Post Functions
-
-********************************************************************/
 bool postError(void) {
 #ifdef SIMULATE
 	return false;
@@ -580,22 +574,6 @@ bool postOK(void) {
 	return strncmp_P(buffer, OK, strlen(OK)) == 0;
 }
 
-void setPostData(char *data, int index) {
-	int length = strlen(data);
-	if (data[strlen(data)] == 0) {
-		length = length - 1;
-	}
-	strncpy(&postdata[index], data, strlen(data));
-}
-
-void clearPostData(int index, int length) {
-	memset(&postdata[index], ' ', length);
-}
-
-void setEvent(const char *event) {
-	clearPostData(TYPE_INDEX, TYPE_LENGTH); 
-	strncpy_P(&postdata[TYPE_INDEX], event, strlen_P(event));
-}
 
 bool sendPostData() {
 #ifdef SIMULATE
@@ -631,11 +609,8 @@ bool sendPostData() {
 }
 
 
-/*******************************************************************
+// Tracker Event Logging Functions
 
-Tracker Event Logging Functions
-
-********************************************************************/
 bool sendToServer() {
 	if (!sendPostData()) return false;
 	if (!postError()) {
@@ -665,7 +640,7 @@ bool logWake() {
 bool logBoot() {
 	info("Starting sequence");
 	bool serverTimestamp = false;
-	int result = attempt(&getGPS, GPS_NO_LOCK);
+	int result = attempt(getGPS, GPS_NO_LOCK);
 	Serial.println(current_time.unixtime());
 	if (current_time.unixtime() < 1444000000) {
 		info("Invalid timestamp -- use server timestamp as sequence_id");
@@ -738,7 +713,7 @@ bool logSleep() {
 }
 
 bool logGPS() {
-	int result = attempt(&getGPS, GPS_NO_LOCK);
+	int result = attempt(getGPS, GPS_NO_LOCK);
 	if (result == last_gps_operation) {
 		checkin_cycles++;
 	}
@@ -761,7 +736,7 @@ bool logGPS() {
 	bool sendresult = false;
 	if (checkin_cycles == 0 || checkin_cycles >= checkin_rate / wake_rate) {
 		info("Sending GPS event"); 
-		sendresult = attempt(&sendToServer);
+		sendresult = attempt(sendToServer);
 		if (sendresult) {
 			checkin_cycles = 0;
 		}
@@ -774,11 +749,8 @@ bool logGPS() {
 	return sendresult;
 }
 
-/*****************************************************
+// Fona Status Checks
 
-Fona Status Checks
-
-******************************************************/
 bool setRTCTimeStamp() {
 	if (hardware_rtc_present) {
 		// get hardware RTC value
@@ -926,11 +898,7 @@ int getGPS() {
 
 
 
-/*****************************************************************
-
-Setup and Loop
-
-******************************************************************/
+// Setup and Loop
 
 void setup() {
 	pinMode(FONA_KEY_PIN, OUTPUT);
@@ -978,9 +946,9 @@ void setup() {
 	getBattery();
 	getTemperature();
 
-	attempt(&logBoot);
+	attempt(logBoot);
 	if (accelerometer_present) {
-		attempt(&logSleep);
+		attempt(logSleep);
 		for (int i = 0; i < 8; i++) {
 			blink(500, 500);
 		}
@@ -1007,7 +975,7 @@ void loop() {
 		for (int i = 0; i < 20; i++) {
 			blink(25, 100);
 		}
-		attempt(&logWake);
+		attempt(logWake);
 		mode = MODE_TRACKER;
 		setSleep();
 	}
@@ -1031,3 +999,4 @@ void loop() {
 	delay(8000);
 #endif
 }
+
