@@ -45,14 +45,15 @@ Debugging pre-processor definitions
 #define GPS_NO_LOCK -1
 #define GPS_CHANGE_THRESHOLD 0.0002f
 
-#define FONA_RX 2
-#define FONA_TX 3
-#define FONA_RST 4
+#define FONA_RX 8
+#define FONA_TX 6
+#define FONA_RST 5
 #define FONA_MAX_ATTEMPTS 5
 #define FONA_DELAY 5000
 #define FONA_DTR_PIN 9
-#define FONA_KEY_PIN 8
-#define FONA_POWER_PIN 7
+#define FONA_KEY_PIN 4
+#define FONA_POWER_PIN 3
+#define FONA_VIO_PIN 11
 #define	CHARGE_DETECT_PIN A0
 #define LED_OUTPUT_PIN 13
 #define BAUD_RATE 57600
@@ -445,10 +446,12 @@ bool fona_powered_up() {
 
 bool fona_key() {
 	info("Attempting key");
+  digitalWrite(LED_OUTPUT_PIN, HIGH);
 	digitalWrite(FONA_KEY_PIN, LOW);
-	delay(FONA_DELAY);
+	delay(2000);
+  digitalWrite(LED_OUTPUT_PIN, LOW);
 	digitalWrite(FONA_KEY_PIN, HIGH);
-	delay(FONA_DELAY);
+	delay(1000);
 	info("key attempt finished");
 	return fona_powered_up();
 }
@@ -905,15 +908,18 @@ void setup() {
 	pinMode(FONA_POWER_PIN, INPUT);
 	pinMode(FONA_DTR_PIN, OUTPUT);
 	digitalWrite(FONA_DTR_PIN, LOW);
-	digitalWrite(FONA_KEY_PIN, LOW);
+	digitalWrite(FONA_KEY_PIN, HIGH);
 	bool force_arm = false;
+  pinMode(FONA_VIO_PIN, OUTPUT);
+  digitalWrite(FONA_VIO_PIN, HIGH);
 	pinMode(CHARGE_DETECT_PIN, INPUT_PULLUP);
 	pinMode(LED_OUTPUT_PIN, OUTPUT);
-	digitalWrite(LED_OUTPUT_PIN, HIGH);
-
+	digitalWrite(LED_OUTPUT_PIN, LOW);
+/*
 	if (analogRead(CHARGE_DETECT_PIN) == 1023) {
 		mode = MODE_CHARGE;
 	}
+ */
 #ifdef FORCE_CHARGE
 	mode = MODE_CHARGE;
 #endif
@@ -937,8 +943,15 @@ void setup() {
 	clearAllData();
 	while (!Serial);
 	Serial.begin(BAUD_RATE);
+  fona_key();
+
+
 
 	while (!fonaInit());									// FONA must init!
+  info("Key attempt successful!");
+  for (int i = 0 ; i < 10; i ++) blink(100, 100);
+
+	
 	accelerometer_present = accelerometerInit();
 
 	blinkBatteryStatus();
