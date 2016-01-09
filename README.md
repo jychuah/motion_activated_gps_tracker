@@ -12,6 +12,7 @@ I will be migrating the product to the Particle.io Electron development board on
 
 ### Software Components
 - [HTML](./html): Web interface for configuring and interacting with tracker
+- [Firebase](./firebase): Rules and configuration for Firebase backend
 - [api_endpoints](./api_endpoints): API end points for tracker to register events
 - [avr_firmware](./avr_firmware): AVR based firmware for tracker
 
