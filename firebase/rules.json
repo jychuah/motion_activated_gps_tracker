@@ -1,0 +1,49 @@
+{
+    "rules": {
+      "sequences" : {
+        "$imei" : {
+          "$sequence" : {
+              ".read" : "auth.admin == true || auth.provider == 'anonmyous' || auth.provider == 'password' && root.child('users').child(auth.uid).child('imei').hasChild($imei + '')",
+              ".write" : "auth.admin == true || auth.provider == 'anonymous' || auth.provider == 'password' && root.child('users').child(auth.uid).child('imei').hasChild($imei + '')"
+
+          }
+        }
+      },
+      "config" : {
+        "imei" : {
+          "$imei" : {
+            "uid" : {
+              ".read" : "auth.admin == true",
+              ".write" : "auth.provider == 'password' && !data.exists()"
+            },
+            "notifications" : {
+              ".read" : "auth.admin == true || root.child('config').child('imei').child($imei).child('uid').val() === auth.uid",
+              ".write" : "auth.admin == true || root.child('config').child('imei').child($imei).child('uid').val() === auth.uid"
+            },
+            "trips" : {
+              ".read" : "auth.admin == true || root.child('config').child('imei').child($imei).child('uid').val() === auth.uid",
+              ".write" : "auth.admin == true || root.child('config').child('imei').child($imei).child('uid').val() === auth.uid"
+            },
+            "rates" : {
+              ".read" : "auth.admin == true || root.child('config').child('imei').child($imei).child('uid').val() === auth.uid",
+              ".write" : "auth.admin == true || root.child('config').child('imei').child($imei).child('uid').val() === auth.uid"
+            },
+            "name" : {
+              ".read" : "auth.admin == true || root.child('config').child('imei').child($imei).child('uid').val() === auth.uid",
+              ".write" : "auth.admin == true || root.child('config').child('imei').child($imei).child('uid').val() === auth.uid"
+            }
+          }
+        }
+      },
+      "users" : {
+        "$uid" : {
+          ".read" : "auth.uid === $uid || auth.admin == true",
+          ".write" : "auth.uid === $uid || auth.admin == true"
+        }
+      },
+      "snapshots" : {
+        ".read" : "true",
+        ".write" : "auth.provider == 'password'"
+      }
+    }
+}
