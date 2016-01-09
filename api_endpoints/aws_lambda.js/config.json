@@ -1,0 +1,13 @@
+{
+    "key" : "your_firebase_key",
+    "motorbike_tracker_url" : "your_website_url",
+    "subjects" : {
+        "provision" : "Your Motorbike Tracker has been provisioned",
+        "boot" : "Your Motorbike Tracker has powered up",
+        "sleep" : "Your Motorbike Tracker has gone to sleep",
+        "wake" : "Your Motorbike Tracker has been disturbed!",
+        "gps" : "Location update from your Motorbike Tracker",
+        "battery" : "Battery alert from your Motorbike Tracker",
+        "temperature" : "Temperature alert from your Motorbike Tracker"
+    }
+}

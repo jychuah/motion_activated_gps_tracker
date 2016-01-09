@@ -1,0 +1,105 @@
+[
+    {
+        "name": "firebase/php-jwt",
+        "version": "v2.2.0",
+        "version_normalized": "2.2.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/firebase/php-jwt.git",
+            "reference": "e0a75bfb6413f22092c99b70f310ccb2cca3efa5"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/firebase/php-jwt/zipball/e0a75bfb6413f22092c99b70f310ccb2cca3efa5",
+            "reference": "e0a75bfb6413f22092c99b70f310ccb2cca3efa5",
+            "shasum": ""
+        },
+        "require": {
+            "php": ">=5.2.0"
+        },
+        "time": "2015-06-22 23:26:39",
+        "type": "library",
+        "installation-source": "dist",
+        "autoload": {
+            "classmap": [
+                "Authentication/",
+                "Exceptions/"
+            ]
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "BSD-3-Clause"
+        ],
+        "authors": [
+            {
+                "name": "Neuman Vong",
+                "email": "neuman+pear@twilio.com",
+                "role": "Developer"
+            },
+            {
+                "name": "Anant Narayanan",
+                "email": "anant@php.net",
+                "role": "Developer"
+            }
+        ],
+        "description": "A simple library to encode and decode JSON Web Tokens (JWT) in PHP. Should conform to the current spec.",
+        "homepage": "https://github.com/firebase/php-jwt"
+    },
+    {
+        "name": "firebase/token-generator",
+        "version": "v2.1.0",
+        "version_normalized": "2.1.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/firebase/firebase-token-generator-php.git",
+            "reference": "7c852251653f9dfed9aa6038a6bfdd3a15f6f536"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/firebase/firebase-token-generator-php/zipball/7c852251653f9dfed9aa6038a6bfdd3a15f6f536",
+            "reference": "7c852251653f9dfed9aa6038a6bfdd3a15f6f536",
+            "shasum": ""
+        },
+        "require": {
+            "firebase/php-jwt": "~2.0",
+            "php": ">=5.4"
+        },
+        "require-dev": {
+            "phpunit/phpunit": "^4.6.0"
+        },
+        "time": "2015-06-23 18:29:17",
+        "type": "library",
+        "extra": {
+            "branch-alias": {
+                "dev-master": "2.x-dev"
+            }
+        },
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "Firebase\\Token\\": "src"
+            },
+            "files": [
+                "FirebaseToken.php"
+            ]
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Anant Narayanan",
+                "email": "anant@php.net",
+                "role": "Developer"
+            },
+            {
+                "name": "Chris Raynor",
+                "email": "chris@firebase.com",
+                "role": "Developer"
+            }
+        ],
+        "description": "A simple library to generate JWT tokens for authenticating to a Firebase.",
+        "homepage": "https://github.com/firebase/firebase-token-generator-php"
+    }
+]

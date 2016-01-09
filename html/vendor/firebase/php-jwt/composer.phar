@@ -1,0 +1,3298 @@
+y granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished
+to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+<?php
+
+require __DIR__.'/../vendor/autoload.php';
+
+echo 'Say hello (visible): ';
+
+$answer = Seld\CliPrompt\CliPrompt::prompt();
+
+echo 'You answered: '.$answer . PHP_EOL;
+
+echo 'Say hello (hidden): ';
+
+$answer = Seld\CliPrompt\CliPrompt::hiddenPrompt();
+
+echo 'You answered: '.$answer . PHP_EOL;
+<?php
+
+
+
+
+
+
+
+
+
+
+namespace Seld\CliPrompt;
+
+class CliPrompt
+{
+
+
+
+
+
+public static function prompt()
+{
+$stdin = fopen('php://stdin', 'r');
+$answer = self::trimAnswer(fgets($stdin, 4096));
+fclose($stdin);
+
+return $answer;
+}
+
+
+
+
+
+
+
+
+
+
+public static function hiddenPrompt($allowFallback = false)
+{
+
+ if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+
+ $exe = __DIR__.'\\..\\res\\hiddeninput.exe';
+
+
+ if ('phar:' === substr(__FILE__, 0, 5)) {
+$tmpExe = sys_get_temp_dir().'/hiddeninput.exe';
+
+
+ 
+ $source = fopen($exe, 'r');
+$target = fopen($tmpExe, 'w+');
+stream_copy_to_stream($source, $target);
+fclose($source);
+fclose($target);
+unset($source, $target);
+
+$exe = $tmpExe;
+}
+
+$answer = self::trimAnswer(shell_exec($exe));
+
+
+ if (isset($tmpExe)) {
+unlink($tmpExe);
+}
+
+
+ echo PHP_EOL;
+
+return $answer;
+}
+
+if (file_exists('/usr/bin/env')) {
+
+ $test = "/usr/bin/env %s -c 'echo OK' 2> /dev/null";
+foreach (array('bash', 'zsh', 'ksh', 'csh') as $sh) {
+if ('OK' === rtrim(shell_exec(sprintf($test, $sh)))) {
+$shell = $sh;
+break;
+}
+}
+
+if (isset($shell)) {
+$readCmd = ($shell === 'csh') ? 'set mypassword = $<' : 'read -r mypassword';
+$command = sprintf("/usr/bin/env %s -c 'stty -echo; %s; stty echo; echo \$mypassword'", $shell, $readCmd);
+$value = self::trimAnswer(shell_exec($command));
+
+
+ echo PHP_EOL;
+
+return $value;
+}
+}
+
+
+ if (!$allowFallback) {
+throw new \RuntimeException('Could not prompt for input in a secure fashion, aborting');
+}
+
+return self::prompt();
+}
+
+private static function trimAnswer($str)
+{
+return preg_replace('{\r?\n$}D', '', $str);
+}
+}
+Copyright (c) 2008, Gradua Networks
+Author: Bruno Prieto Reis
+All rights reserved.
+
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+ * Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+ * Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+ * Neither the name of the Gradua Networks nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+
+
+
+
+
+
+class CollectionConstraint extends Constraint
+{
+
+
+
+public function check($value, $schema = null, $path = null, $i = null)
+{
+
+ if (isset($schema->minItems) && count($value) < $schema->minItems) {
+$this->addError($path, "There must be a minimum of " . $schema->minItems . " in the array");
+}
+
+
+ if (isset($schema->maxItems) && count($value) > $schema->maxItems) {
+$this->addError($path, "There must be a maximum of " . $schema->maxItems . " in the array");
+}
+
+
+ if (isset($schema->uniqueItems)) {
+$unique = $value;
+if (is_array($value) && count($value)) {
+$unique = array_map(function($e) { return var_export($e, true); }, $value);
+}
+if (count(array_unique($unique)) != count($value)) {
+$this->addError($path, "There are no duplicates allowed in the array");
+}
+}
+
+
+ if (isset($schema->items)) {
+$this->validateItems($value, $schema, $path, $i);
+}
+}
+
+
+
+
+
+
+
+
+
+protected function validateItems($value, $schema = null, $path = null, $i = null)
+{
+if (is_object($schema->items)) {
+
+ foreach ($value as $k => $v) {
+$initErrors = $this->getErrors();
+
+
+ $this->checkUndefined($v, $schema->items, $path, $k);
+
+
+ if (count($initErrors) < count($this->getErrors()) && (isset($schema->additionalItems) && $schema->additionalItems !== false)) {
+$secondErrors = $this->getErrors();
+$this->checkUndefined($v, $schema->additionalItems, $path, $k);
+}
+
+
+ if (isset($secondErrors) && count($secondErrors) < count($this->getErrors())) {
+$this->errors = $secondErrors;
+} else if (isset($secondErrors) && count($secondErrors) === count($this->getErrors())) {
+$this->errors = $initErrors;
+}
+}
+} else {
+
+ foreach ($value as $k => $v) {
+if (array_key_exists($k, $schema->items)) {
+$this->checkUndefined($v, $schema->items[$k], $path, $k);
+} else {
+
+ if (property_exists($schema, 'additionalItems')) {
+if ($schema->additionalItems !== false) {
+$this->checkUndefined($v, $schema->additionalItems, $path, $k);
+} else {
+$this->addError(
+$path, 'The item ' . $i . '[' . $k . '] is not defined and the definition does not allow additional items');
+}
+} else {
+
+ $this->checkUndefined($v, new \stdClass(), $path, $k);
+}
+}
+}
+
+
+ if(count($value) > 0) {
+for ($k = count($value); $k < count($schema->items); $k++) {
+$this->checkUndefined(new UndefinedConstraint(), $schema->items[$k], $path, $k);
+}
+}
+}
+}
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+use JsonSchema\Uri\UriRetriever;
+
+
+
+
+
+
+
+abstract class Constraint implements ConstraintInterface
+{
+protected $checkMode = self::CHECK_MODE_NORMAL;
+protected $uriRetriever;
+protected $errors = array();
+protected $inlineSchemaProperty = '$schema';
+
+const CHECK_MODE_NORMAL = 1;
+const CHECK_MODE_TYPE_CAST = 2;
+
+
+
+
+
+public function __construct($checkMode = self::CHECK_MODE_NORMAL, UriRetriever $uriRetriever = null)
+{
+$this->checkMode = $checkMode;
+$this->uriRetriever = $uriRetriever;
+}
+
+
+
+
+public function getUriRetriever()
+{
+if (is_null($this->uriRetriever))
+{
+$this->setUriRetriever(new UriRetriever);
+}
+
+return $this->uriRetriever;
+}
+
+
+
+
+public function setUriRetriever(UriRetriever $uriRetriever)
+{
+$this->uriRetriever = $uriRetriever;
+}
+
+
+
+
+public function addError($path, $message)
+{
+$this->errors[] = array(
+'property' => $path,
+'message' => $message
+);
+}
+
+
+
+
+public function addErrors(array $errors)
+{
+$this->errors = array_merge($this->errors, $errors);
+}
+
+
+
+
+public function getErrors()
+{
+return $this->errors;
+}
+
+
+
+
+public function isValid()
+{
+return !$this->getErrors();
+}
+
+
+
+
+
+public function reset()
+{
+$this->errors = array();
+}
+
+
+
+
+
+
+
+
+
+protected function incrementPath($path, $i)
+{
+if ($path !== '') {
+if (is_int($i)) {
+$path .= '[' . $i . ']';
+} elseif ($i == '') {
+$path .= '';
+} else {
+$path .= '.' . $i;
+}
+} else {
+$path = $i;
+}
+
+return $path;
+}
+
+
+
+
+
+
+
+
+
+protected function checkArray($value, $schema = null, $path = null, $i = null)
+{
+$validator = new CollectionConstraint($this->checkMode, $this->uriRetriever);
+$validator->check($value, $schema, $path, $i);
+
+$this->addErrors($validator->getErrors());
+}
+
+
+
+
+
+
+
+
+
+
+protected function checkObject($value, $schema = null, $path = null, $i = null, $patternProperties = null)
+{
+$validator = new ObjectConstraint($this->checkMode, $this->uriRetriever);
+$validator->check($value, $schema, $path, $i, $patternProperties);
+
+$this->addErrors($validator->getErrors());
+}
+
+
+
+
+
+
+
+
+
+protected function checkType($value, $schema = null, $path = null, $i = null)
+{
+$validator = new TypeConstraint($this->checkMode, $this->uriRetriever);
+$validator->check($value, $schema, $path, $i);
+
+$this->addErrors($validator->getErrors());
+}
+
+
+
+
+
+
+
+
+
+protected function checkUndefined($value, $schema = null, $path = null, $i = null)
+{
+$validator = new UndefinedConstraint($this->checkMode, $this->uriRetriever);
+$validator->check($value, $schema, $path, $i);
+
+$this->addErrors($validator->getErrors());
+}
+
+
+
+
+
+
+
+
+
+protected function checkString($value, $schema = null, $path = null, $i = null)
+{
+$validator = new StringConstraint($this->checkMode, $this->uriRetriever);
+$validator->check($value, $schema, $path, $i);
+
+$this->addErrors($validator->getErrors());
+}
+
+
+
+
+
+
+
+
+
+protected function checkNumber($value, $schema = null, $path = null, $i = null)
+{
+$validator = new NumberConstraint($this->checkMode, $this->uriRetriever);
+$validator->check($value, $schema, $path, $i);
+
+$this->addErrors($validator->getErrors());
+}
+
+
+
+
+
+
+
+
+
+protected function checkEnum($value, $schema = null, $path = null, $i = null)
+{
+$validator = new EnumConstraint($this->checkMode, $this->uriRetriever);
+$validator->check($value, $schema, $path, $i);
+
+$this->addErrors($validator->getErrors());
+}
+
+protected function checkFormat($value, $schema = null, $path = null, $i = null)
+{
+$validator = new FormatConstraint($this->checkMode, $this->uriRetriever);
+$validator->check($value, $schema, $path, $i);
+
+$this->addErrors($validator->getErrors());
+}
+
+
+
+
+
+protected function retrieveUri($uri)
+{
+if (null === $this->uriRetriever) {
+$this->setUriRetriever(new UriRetriever);
+}
+$jsonSchema = $this->uriRetriever->retrieve($uri);
+
+ return $jsonSchema;
+}
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+
+
+
+
+
+interface ConstraintInterface
+{
+
+
+
+
+
+public function getErrors();
+
+
+
+
+
+
+public function addErrors(array $errors);
+
+
+
+
+
+
+
+public function addError($path, $message);
+
+
+
+
+
+
+public function isValid();
+
+
+
+
+
+
+
+
+
+
+public function check($value, $schema = null, $path = null, $i = null);
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+
+
+
+
+
+
+class EnumConstraint extends Constraint
+{
+
+
+
+public function check($element, $schema = null, $path = null, $i = null)
+{
+
+ if ($element instanceof UndefinedConstraint && (!isset($schema->required) || !$schema->required)) {
+return;
+}
+
+foreach ($schema->enum as $enum) {
+$type = gettype($element);
+if ($type === gettype($enum)) {
+if ($type == "object") {
+if ($element == $enum)
+return;
+} else {
+if ($element === $enum)
+return;
+
+}
+}
+}
+
+$this->addError($path, "does not have a value in the enumeration " . print_r($schema->enum, true));
+}
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+
+
+
+
+
+
+class FormatConstraint extends Constraint
+{
+
+
+
+public function check($element, $schema = null, $path = null, $i = null)
+{
+if (!isset($schema->format)) {
+return;
+}
+
+switch ($schema->format) {
+case 'date':
+if (!$date = $this->validateDateTime($element, 'Y-m-d')) {
+$this->addError($path, sprintf('Invalid date %s, expected format YYYY-MM-DD', json_encode($element)));
+}
+break;
+
+case 'time':
+if (!$this->validateDateTime($element, 'H:i:s')) {
+$this->addError($path, sprintf('Invalid time %s, expected format hh:mm:ss', json_encode($element)));
+}
+break;
+
+case 'date-time':
+if (!$this->validateDateTime($element, 'Y-m-d\TH:i:s\Z') &&
+!$this->validateDateTime($element, 'Y-m-d\TH:i:s.u\Z') &&
+!$this->validateDateTime($element, 'Y-m-d\TH:i:sP') &&
+!$this->validateDateTime($element, 'Y-m-d\TH:i:sO')
+) {
+$this->addError($path, sprintf('Invalid date-time %s, expected format YYYY-MM-DDThh:mm:ssZ or YYYY-MM-DDThh:mm:ss+hh:mm', json_encode($element)));
+}
+break;
+
+case 'utc-millisec':
+if (!$this->validateDateTime($element, 'U')) {
+$this->addError($path, sprintf('Invalid time %s, expected integer of milliseconds since Epoch', json_encode($element)));
+}
+break;
+
+case 'regex':
+if (!$this->validateRegex($element)) {
+$this->addError($path, 'Invalid regex format ' . $element);
+}
+break;
+
+case 'color':
+if (!$this->validateColor($element)) {
+$this->addError($path, "Invalid color");
+}
+break;
+
+case 'style':
+if (!$this->validateStyle($element)) {
+$this->addError($path, "Invalid style");
+}
+break;
+
+case 'phone':
+if (!$this->validatePhone($element)) {
+$this->addError($path, "Invalid phone number");
+}
+break;
+
+case 'uri':
+if (null === filter_var($element, FILTER_VALIDATE_URL, FILTER_NULL_ON_FAILURE)) {
+$this->addError($path, "Invalid URL format");
+}
+break;
+
+case 'email':
+if (null === filter_var($element, FILTER_VALIDATE_EMAIL, FILTER_NULL_ON_FAILURE)) {
+$this->addError($path, "Invalid email");
+}
+break;
+
+case 'ip-address':
+case 'ipv4':
+if (null === filter_var($element, FILTER_VALIDATE_IP, FILTER_NULL_ON_FAILURE | FILTER_FLAG_IPV4)) {
+$this->addError($path, "Invalid IP address");
+}
+break;
+
+case 'ipv6':
+if (null === filter_var($element, FILTER_VALIDATE_IP, FILTER_NULL_ON_FAILURE | FILTER_FLAG_IPV6)) {
+$this->addError($path, "Invalid IP address");
+}
+break;
+
+case 'host-name':
+case 'hostname':
+if (!$this->validateHostname($element)) {
+$this->addError($path, "Invalid hostname");
+}
+break;
+
+default:
+$this->addError($path, "Unknown format: " . json_encode($schema->format));
+break;
+}
+}
+
+protected function validateDateTime($datetime, $format)
+{
+$dt = \DateTime::createFromFormat($format, $datetime);
+
+if (!$dt) {
+return false;
+}
+
+return $datetime === $dt->format($format);
+}
+
+protected function validateRegex($regex)
+{
+return false !== @preg_match('/' . $regex . '/', '');
+}
+
+protected function validateColor($color)
+{
+if (in_array(strtolower($color), array('aqua', 'black', 'blue', 'fuchsia',
+'gray', 'green', 'lime', 'maroon', 'navy', 'olive', 'orange', 'purple',
+'red', 'silver', 'teal', 'white', 'yellow'))) {
+return true;
+}
+
+return preg_match('/^#([a-f0-9]{3}|[a-f0-9]{6})$/i', $color);
+}
+
+protected function validateStyle($style)
+{
+$properties = explode(';', rtrim($style, ';'));
+$invalidEntries = preg_grep('/^\s*[-a-z]+\s*:\s*.+$/i', $properties, PREG_GREP_INVERT);
+
+return empty($invalidEntries);
+}
+
+protected function validatePhone($phone)
+{
+return preg_match('/^\+?(\(\d{3}\)|\d{3}) \d{3} \d{4}$/', $phone);
+}
+
+protected function validateHostname($host)
+{
+return preg_match('/^[_a-z]+\.([_a-z]+\.?)+$/i', $host);
+}
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+
+
+
+
+
+
+class NumberConstraint extends Constraint
+{
+
+
+
+public function check($element, $schema = null, $path = null, $i = null)
+{
+
+ if (isset($schema->exclusiveMinimum)) {
+if (isset($schema->minimum)) {
+if ($schema->exclusiveMinimum && $element === $schema->minimum) {
+$this->addError($path, "must have a minimum value greater than boundary value of " . $schema->minimum);
+} else if ($element < $schema->minimum) {
+$this->addError($path, "must have a minimum value of " . $schema->minimum);
+}
+} else {
+$this->addError($path, "use of exclusiveMinimum requires presence of minimum");
+}
+} else if (isset($schema->minimum) && $element < $schema->minimum) {
+$this->addError($path, "must have a minimum value of " . $schema->minimum);
+}
+
+
+ if (isset($schema->exclusiveMaximum)) {
+if (isset($schema->maximum)) {
+if ($schema->exclusiveMaximum && $element === $schema->maximum) {
+$this->addError($path, "must have a maximum value less than boundary value of " . $schema->maximum);
+} else if ($element > $schema->maximum) {
+$this->addError($path, "must have a maximum value of " . $schema->maximum);
+}
+} else {
+$this->addError($path, "use of exclusiveMaximum requires presence of maximum");
+}
+} else if (isset($schema->maximum) && $element > $schema->maximum) {
+$this->addError($path, "must have a maximum value of " . $schema->maximum);
+}
+
+
+ if (isset($schema->divisibleBy) && $this->fmod($element, $schema->divisibleBy) != 0) {
+$this->addError($path, "is not divisible by " . $schema->divisibleBy);
+}
+
+
+ if (isset($schema->multipleOf) && $this->fmod($element, $schema->multipleOf) != 0) {
+$this->addError($path, "must be a multiple of " . $schema->multipleOf);
+}
+
+$this->checkFormat($element, $schema, $path, $i);
+}
+
+private function fmod($number1, $number2)
+{
+$modulus = fmod($number1, $number2);
+$precision = abs(0.0000000001);
+$diff = (float)($modulus - $number2);
+
+if (-$precision < $diff && $diff < $precision) {
+return 0.0;
+}
+
+$decimals1 = mb_strpos($number1, ".") ? mb_strlen($number1) - mb_strpos($number1, ".") - 1 : 0;
+$decimals2 = mb_strpos($number2, ".") ? mb_strlen($number2) - mb_strpos($number2, ".") - 1 : 0;
+
+return (float)round($modulus, max($decimals1, $decimals2));
+}
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+
+
+
+
+
+
+class ObjectConstraint extends Constraint
+{
+
+
+
+function check($element, $definition = null, $path = null, $additionalProp = null, $patternProperties = null)
+{
+if ($element instanceof UndefinedConstraint) {
+return;
+}
+
+$matches = array();
+if ($patternProperties) {
+$matches = $this->validatePatternProperties($element, $path, $patternProperties);
+}
+
+if ($definition) {
+
+ $this->validateDefinition($element, $definition, $path);
+}
+
+
+ $this->validateElement($element, $matches, $definition, $path, $additionalProp);
+}
+
+public function validatePatternProperties($element, $path, $patternProperties)
+{
+$matches = array();
+foreach ($patternProperties as $pregex => $schema) {
+
+ if (@preg_match('/'. $pregex . '/', '') === false) {
+$this->addError($path, 'The pattern "' . $pregex . '" is invalid');
+continue;
+}
+foreach ($element as $i => $value) {
+if (preg_match('/' . $pregex . '/', $i)) {
+$matches[] = $i;
+$this->checkUndefined($value, $schema ? : new \stdClass(), $path, $i);
+}
+}
+}
+return $matches;
+}
+
+
+
+
+
+
+
+
+
+
+public function validateElement($element, $matches, $objectDefinition = null, $path = null, $additionalProp = null)
+{
+foreach ($element as $i => $value) {
+
+$property = $this->getProperty($element, $i, new UndefinedConstraint());
+$definition = $this->getProperty($objectDefinition, $i);
+
+
+ if (!in_array($i, $matches) && $additionalProp === false && $this->inlineSchemaProperty !== $i && !$definition) {
+$this->addError($path, "The property " . $i . " is not defined and the definition does not allow additional properties");
+}
+
+
+ if (!in_array($i, $matches) && $additionalProp && !$definition) {
+if ($additionalProp === true) {
+$this->checkUndefined($value, null, $path, $i);
+} else {
+$this->checkUndefined($value, $additionalProp, $path, $i);
+}
+}
+
+
+ $require = $this->getProperty($definition, 'requires');
+if ($require && !$this->getProperty($element, $require)) {
+$this->addError($path, "the presence of the property " . $i . " requires that " . $require . " also be present");
+}
+
+if (!$definition) {
+
+ $this->checkUndefined($value, new \stdClass(), $path, $i);
+}
+}
+}
+
+
+
+
+
+
+
+
+public function validateDefinition($element, $objectDefinition = null, $path = null)
+{
+foreach ($objectDefinition as $i => $value) {
+$property = $this->getProperty($element, $i, new UndefinedConstraint());
+$definition = $this->getProperty($objectDefinition, $i);
+$this->checkUndefined($property, $definition, $path, $i);
+}
+}
+
+
+
+
+
+
+
+
+
+
+protected function getProperty($element, $property, $fallback = null)
+{
+if (is_array($element) ) {
+return array_key_exists($property, $element) ? $element[$property] : $fallback;
+} elseif (is_object($element)) {
+return property_exists($element, $property) ? $element->$property : $fallback;
+}
+
+return $fallback;
+}
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+use JsonSchema\Exception\InvalidArgumentException;
+
+
+
+
+
+
+
+class SchemaConstraint extends Constraint
+{
+
+
+
+public function check($element, $schema = null, $path = null, $i = null)
+{
+if ($schema !== null) {
+
+ $this->checkUndefined($element, $schema, '', '');
+} elseif (property_exists($element, $this->inlineSchemaProperty)) {
+
+ $this->checkUndefined($element, $element->{$this->inlineSchemaProperty}, '', '');
+} else {
+throw new InvalidArgumentException('no schema found to verify against');
+}
+}
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+
+
+
+
+
+
+class StringConstraint extends Constraint
+{
+
+
+
+public function check($element, $schema = null, $path = null, $i = null)
+{
+
+ if (isset($schema->maxLength) && $this->strlen($element) > $schema->maxLength) {
+$this->addError($path, "must be at most " . $schema->maxLength . " characters long");
+}
+
+
+ if (isset($schema->minLength) && $this->strlen($element) < $schema->minLength) {
+$this->addError($path, "must be at least " . $schema->minLength . " characters long");
+}
+
+
+ if (isset($schema->pattern) && !preg_match('#' . str_replace('#', '\\#', $schema->pattern) . '#', $element)) {
+$this->addError($path, "does not match the regex pattern " . $schema->pattern);
+}
+
+$this->checkFormat($element, $schema, $path, $i);
+}
+
+private function strlen($string)
+{
+if (extension_loaded('mbstring')) {
+return mb_strlen($string, mb_detect_encoding($string));
+} else {
+return strlen($string);
+}
+}
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+use JsonSchema\Exception\InvalidArgumentException;
+use UnexpectedValueException as StandardUnexpectedValueException;
+
+
+
+
+
+
+
+class TypeConstraint extends Constraint
+{
+
+
+
+static $wording = array(
+'integer' => 'an integer',
+'number' => 'a number',
+'boolean' => 'a boolean',
+'object' => 'an object',
+'array' => 'an array',
+'string' => 'a string',
+'null' => 'a null',
+'any' => NULL, 
+ 0 => NULL, 
+ );
+
+
+
+
+public function check($value = null, $schema = null, $path = null, $i = null)
+{
+$type = isset($schema->type) ? $schema->type : null;
+$isValid = true;
+
+if (is_array($type)) {
+
+ $validatedOneType = false;
+$errors = array();
+foreach ($type as $tp) {
+$validator = new TypeConstraint($this->checkMode);
+$subSchema = new \stdClass();
+$subSchema->type = $tp;
+$validator->check($value, $subSchema, $path, null);
+$error = $validator->getErrors();
+
+if (!count($error)) {
+$validatedOneType = true;
+break;
+}
+
+$errors = $error;
+}
+
+if (!$validatedOneType) {
+return $this->addErrors($errors);
+}
+} elseif (is_object($type)) {
+$this->checkUndefined($value, $type, $path);
+} else {
+$isValid = $this->validateType($value, $type);
+}
+
+if ($isValid === false) {
+if (!isset(self::$wording[$type])) {
+throw new StandardUnexpectedValueException(
+sprintf(
+"No wording for %s available, expected wordings are: [%s]",
+var_export($type, true),
+implode(', ', array_filter(self::$wording)))
+);
+}
+$this->addError($path, gettype($value) . " value found, but " . self::$wording[$type] . " is required");
+}
+}
+
+
+
+
+
+
+
+
+
+
+
+protected function validateType($value, $type)
+{
+
+ if (!$type) {
+return true;
+}
+
+if ('integer' === $type) {
+return is_int($value);
+}
+
+if ('number' === $type) {
+return is_numeric($value) && !is_string($value);
+}
+
+if ('boolean' === $type) {
+return is_bool($value);
+}
+
+if ('object' === $type) {
+return is_object($value);
+
+ }
+
+if ('array' === $type) {
+return is_array($value);
+}
+
+if ('string' === $type) {
+return is_string($value);
+}
+
+if ('null' === $type) {
+return is_null($value);
+}
+
+if ('any' === $type) {
+return true;
+}
+
+throw new InvalidArgumentException((is_object($value) ? 'object' : $value) . ' is an invalid type for ' . $type);
+}
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Constraints;
+
+use JsonSchema\Exception\InvalidArgumentException;
+use JsonSchema\Uri\UriResolver;
+
+
+
+
+
+
+
+class UndefinedConstraint extends Constraint
+{
+
+
+
+public function check($value, $schema = null, $path = null, $i = null)
+{
+if (is_null($schema)) {
+return;
+}
+
+if (!is_object($schema)) {
+throw new InvalidArgumentException(
+'Given schema must be an object in ' . $path
+. ' but is a ' . gettype($schema)
+);
+}
+
+$i = is_null($i) ? "" : $i;
+$path = $this->incrementPath($path, $i);
+
+
+ $this->validateCommonProperties($value, $schema, $path);
+
+
+ $this->validateOfProperties($value, $schema, $path);
+
+
+ $this->validateTypes($value, $schema, $path, $i);
+}
+
+
+
+
+
+
+
+
+
+public function validateTypes($value, $schema = null, $path = null, $i = null)
+{
+
+ if (is_array($value)) {
+$this->checkArray($value, $schema, $path, $i);
+}
+
+
+ if (is_object($value) && (isset($schema->properties) || isset($schema->patternProperties))) {
+$this->checkObject(
+$value,
+isset($schema->properties) ? $schema->properties : null,
+$path,
+isset($schema->additionalProperties) ? $schema->additionalProperties : null,
+isset($schema->patternProperties) ? $schema->patternProperties : null
+);
+}
+
+
+ if (is_string($value)) {
+$this->checkString($value, $schema, $path, $i);
+}
+
+
+ if (is_numeric($value)) {
+$this->checkNumber($value, $schema, $path, $i);
+}
+
+
+ if (isset($schema->enum)) {
+$this->checkEnum($value, $schema, $path, $i);
+}
+}
+
+
+
+
+
+
+
+
+
+protected function validateCommonProperties($value, $schema = null, $path = null, $i = "")
+{
+
+ if (isset($schema->extends)) {
+if (is_string($schema->extends)) {
+$schema->extends = $this->validateUri($schema, $schema->extends);
+}
+if (is_array($schema->extends)) {
+foreach ($schema->extends as $extends) {
+$this->checkUndefined($value, $extends, $path, $i);
+}
+} else {
+$this->checkUndefined($value, $schema->extends, $path, $i);
+}
+}
+
+
+ if (is_object($value)) {
+
+if (!($value instanceof UndefinedConstraint) && isset($schema->required) && is_array($schema->required) ) {
+
+ foreach ($schema->required as $required) {
+if (!property_exists($value, $required)) {
+$this->addError($path, "the property " . $required . " is required");
+}
+}
+} else if (isset($schema->required) && !is_array($schema->required)) {
+
+ if ( $schema->required && $value instanceof UndefinedConstraint) {
+$this->addError($path, "is missing and it is required");
+}
+}
+}
+
+
+ if (!($value instanceof UndefinedConstraint)) {
+$this->checkType($value, $schema, $path);
+}
+
+
+ if (isset($schema->disallow)) {
+$initErrors = $this->getErrors();
+
+$typeSchema = new \stdClass();
+$typeSchema->type = $schema->disallow;
+$this->checkType($value, $typeSchema, $path);
+
+
+ if (count($this->getErrors()) == count($initErrors)) {
+$this->addError($path, "disallowed value was matched");
+} else {
+$this->errors = $initErrors;
+}
+}
+
+if (isset($schema->not)) {
+$initErrors = $this->getErrors();
+$this->checkUndefined($value, $schema->not, $path, $i);
+
+
+ if (count($this->getErrors()) == count($initErrors)) {
+$this->addError($path, "matched a schema which it should not");
+} else {
+$this->errors = $initErrors;
+}
+}
+
+
+ if (is_object($value)) {
+if (isset($schema->minProperties)) {
+if (count(get_object_vars($value)) < $schema->minProperties) {
+$this->addError($path, "must contain a minimum of " . $schema->minProperties . " properties");
+}
+}
+if (isset($schema->maxProperties)) {
+if (count(get_object_vars($value)) > $schema->maxProperties) {
+$this->addError($path, "must contain no more than " . $schema->maxProperties . " properties");
+}
+}
+}
+
+
+ if (is_object($value) && isset($schema->dependencies)) {
+$this->validateDependencies($value, $schema->dependencies, $path);
+}
+}
+
+
+
+
+
+
+
+
+
+protected function validateOfProperties($value, $schema, $path, $i = "")
+{
+
+ if ($value instanceof UndefinedConstraint) {
+return;
+}
+
+if (isset($schema->allOf)) {
+$isValid = true;
+foreach ($schema->allOf as $allOf) {
+$initErrors = $this->getErrors();
+$this->checkUndefined($value, $allOf, $path, $i);
+$isValid = $isValid && (count($this->getErrors()) == count($initErrors));
+}
+if (!$isValid) {
+$this->addError($path, "failed to match all schemas");
+}
+}
+
+if (isset($schema->anyOf)) {
+$isValid = false;
+$startErrors = $this->getErrors();
+foreach ($schema->anyOf as $anyOf) {
+$initErrors = $this->getErrors();
+$this->checkUndefined($value, $anyOf, $path, $i);
+if ($isValid = (count($this->getErrors()) == count($initErrors))) {
+break;
+}
+}
+if (!$isValid) {
+$this->addError($path, "failed to match at least one schema");
+} else {
+$this->errors = $startErrors;
+}
+}
+
+if (isset($schema->oneOf)) {
+$allErrors = array();
+$matchedSchemas = 0;
+$startErrors = $this->getErrors();
+foreach ($schema->oneOf as $oneOf) {
+$this->errors = array();
+$this->checkUndefined($value, $oneOf, $path, $i);
+if (count($this->getErrors()) == 0) {
+$matchedSchemas++;
+}
+$allErrors = array_merge($allErrors, array_values($this->getErrors()));
+}
+if ($matchedSchemas !== 1) {
+$this->addErrors(
+array_merge(
+$allErrors,
+array(array(
+'property' => $path,
+'message' => "failed to match exactly one schema"
+),),
+$startErrors
+)
+);
+} else {
+$this->errors = $startErrors;
+}
+}
+}
+
+
+
+
+
+
+
+
+
+protected function validateDependencies($value, $dependencies, $path, $i = "")
+{
+foreach ($dependencies as $key => $dependency) {
+if (property_exists($value, $key)) {
+if (is_string($dependency)) {
+
+ if (!property_exists($value, $dependency)) {
+$this->addError($path, "$key depends on $dependency and $dependency is missing");
+}
+} else if (is_array($dependency)) {
+
+ foreach ($dependency as $d) {
+if (!property_exists($value, $d)) {
+$this->addError($path, "$key depends on $d and $d is missing");
+}
+}
+} else if (is_object($dependency)) {
+
+ $this->checkUndefined($value, $dependency, $path, $i);
+}
+}
+}
+}
+
+protected function validateUri($schema, $schemaUri = null)
+{
+$resolver = new UriResolver();
+$retriever = $this->getUriRetriever();
+
+$jsonSchema = null;
+if ($resolver->isValid($schemaUri)) {
+$schemaId = property_exists($schema, 'id') ? $schema->id : null;
+$jsonSchema = $retriever->retrieve($schemaId, $schemaUri);
+}
+
+return $jsonSchema;
+}
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Exception;
+
+
+
+
+class InvalidArgumentException extends \InvalidArgumentException
+{
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Exception;
+
+
+
+
+class InvalidSchemaMediaTypeException extends \RuntimeException
+{ 
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Exception;
+
+
+
+
+class InvalidSourceUriException extends InvalidArgumentException
+{
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Exception;
+
+
+
+
+class JsonDecodingException extends \RuntimeException
+{
+public function __construct($code = JSON_ERROR_NONE, \Exception $previous = null)
+{
+switch ($code) {
+case JSON_ERROR_DEPTH:
+$message = 'The maximum stack depth has been exceeded';
+break;
+case JSON_ERROR_STATE_MISMATCH:
+$message = 'Invalid or malformed JSON';
+break;
+case JSON_ERROR_CTRL_CHAR:
+$message = 'Control character error, possibly incorrectly encoded';
+break;
+case JSON_ERROR_UTF8:
+$message = 'Malformed UTF-8 characters, possibly incorrectly encoded';
+break;
+case JSON_ERROR_SYNTAX:
+$message = 'JSON syntax is malformed';
+break;
+default:
+$message = 'Syntax error';
+}
+parent::__construct($message, $code, $previous);
+}
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Exception;
+
+
+
+
+class ResourceNotFoundException extends \RuntimeException
+{
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Exception;
+
+
+
+
+class UriResolverException extends \RuntimeException
+{
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema;
+
+use JsonSchema\Uri\Retrievers\UriRetrieverInterface;
+use JsonSchema\Uri\UriRetriever;
+
+
+
+
+
+
+
+class RefResolver
+{
+
+
+
+
+
+
+
+protected static $depth = 0;
+
+
+
+
+
+public static $maxDepth = 7;
+
+
+
+
+protected $uriRetriever = null;
+
+
+
+
+public function __construct($retriever = null)
+{
+$this->uriRetriever = $retriever;
+}
+
+
+
+
+
+
+
+
+public function fetchRef($ref, $sourceUri)
+{
+$retriever = $this->getUriRetriever();
+$jsonSchema = $retriever->retrieve($ref, $sourceUri);
+$this->resolve($jsonSchema);
+
+return $jsonSchema;
+}
+
+
+
+
+
+
+
+public function getUriRetriever()
+{
+if (is_null($this->uriRetriever)) {
+$this->setUriRetriever(new UriRetriever);
+}
+
+return $this->uriRetriever;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public function resolve($schema, $sourceUri = null)
+{
+if (self::$depth > self::$maxDepth) {
+return;
+}
+++self::$depth;
+
+if (! is_object($schema)) {
+--self::$depth;
+return;
+}
+
+if (null === $sourceUri && ! empty($schema->id)) {
+$sourceUri = $schema->id;
+}
+
+
+ $this->resolveRef($schema, $sourceUri);
+
+
+ 
+ foreach (array('additionalItems', 'additionalProperties', 'extends', 'items') as $propertyName) {
+$this->resolveProperty($schema, $propertyName, $sourceUri);
+}
+
+
+ 
+ 
+ foreach (array('disallow', 'extends', 'items', 'type', 'allOf', 'anyOf', 'oneOf') as $propertyName) {
+$this->resolveArrayOfSchemas($schema, $propertyName, $sourceUri);
+}
+
+
+ foreach (array('dependencies', 'patternProperties', 'properties') as $propertyName) {
+$this->resolveObjectOfSchemas($schema, $propertyName, $sourceUri);
+}
+
+--self::$depth;
+}
+
+
+
+
+
+
+
+
+
+public function resolveArrayOfSchemas($schema, $propertyName, $sourceUri)
+{
+if (! isset($schema->$propertyName) || ! is_array($schema->$propertyName)) {
+return;
+}
+
+foreach ($schema->$propertyName as $possiblySchema) {
+$this->resolve($possiblySchema, $sourceUri);
+}
+}
+
+
+
+
+
+
+
+
+
+public function resolveObjectOfSchemas($schema, $propertyName, $sourceUri)
+{
+if (! isset($schema->$propertyName) || ! is_object($schema->$propertyName)) {
+return;
+}
+
+foreach (get_object_vars($schema->$propertyName) as $possiblySchema) {
+$this->resolve($possiblySchema, $sourceUri);
+}
+}
+
+
+
+
+
+
+
+
+
+public function resolveProperty($schema, $propertyName, $sourceUri)
+{
+if (! isset($schema->$propertyName)) {
+return;
+}
+
+$this->resolve($schema->$propertyName, $sourceUri);
+}
+
+
+
+
+
+
+
+
+
+public function resolveRef($schema, $sourceUri)
+{
+$ref = '$ref';
+
+if (empty($schema->$ref)) {
+return;
+}
+
+$refSchema = $this->fetchRef($schema->$ref, $sourceUri);
+unset($schema->$ref);
+
+
+ foreach (get_object_vars($refSchema) as $prop => $value) {
+$schema->$prop = $value;
+}
+}
+
+
+
+
+
+
+
+public function setUriRetriever(UriRetriever $retriever)
+{
+$this->uriRetriever = $retriever;
+
+return $this;
+}
+}
+<?php
+
+
+
+
+namespace JsonSchema\Uri\Retrievers;
+
+
+
+
+
+
+abstract class AbstractRetriever implements UriRetrieverInterface
+{
+
+
+
+
+protected $contentType;
+
+
+
+
+
+public function getContentType()
+{
+return $this->contentType;
+}
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Uri\Retrievers;
+
+use JsonSchema\Validator;
+
+
+
+
+
+
+class Curl extends AbstractRetriever
+{
+protected $messageBody;
+
+public function __construct()
+{
+if (!function_exists('curl_init')) {
+throw new \RuntimeException("cURL not installed");
+}
+}
+
+
+
+
+
+public function retrieve($uri)
+{
+$ch = curl_init();
+
+curl_setopt($ch, CURLOPT_URL, $uri);
+curl_setopt($ch, CURLOPT_HEADER, true);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: ' . Validator::SCHEMA_MEDIA_TYPE));
+
+$response = curl_exec($ch);
+if (false === $response) {
+throw new \JsonSchema\Exception\ResourceNotFoundException('JSON schema not found');
+}
+
+$this->fetchMessageBody($response);
+$this->fetchContentType($response);
+
+curl_close($ch);
+
+return $this->messageBody;
+}
+
+
+
+
+private function fetchMessageBody($response)
+{
+preg_match("/(?:\r\n){2}(.*)$/ms", $response, $match);
+$this->messageBody = $match[1];
+}
+
+
+
+
+
+protected function fetchContentType($response)
+{
+if (0 < preg_match("/Content-Type:(\V*)/ims", $response, $match)) {
+$this->contentType = trim($match[1]);
+
+return true;
+}
+
+return false;
+}
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Uri\Retrievers;
+
+use JsonSchema\Exception\ResourceNotFoundException;
+use JsonSchema\Validator;
+
+
+
+
+
+
+class FileGetContents extends AbstractRetriever
+{
+protected $messageBody;
+
+
+
+
+
+public function retrieve($uri)
+{
+$context = stream_context_create(array(
+'http' => array(
+'method' => 'GET',
+'header' => "Accept: " . Validator::SCHEMA_MEDIA_TYPE
+)));
+
+$response = file_get_contents($uri);
+if (false === $response) {
+throw new ResourceNotFoundException('JSON schema not found at ' . $uri);
+}
+if ($response == ''
+&& substr($uri, 0, 7) == 'file://' && substr($uri, -1) == '/'
+) {
+throw new ResourceNotFoundException('JSON schema not found at ' . $uri);
+}
+
+$this->messageBody = $response;
+if (! empty($http_response_header)) {
+$this->fetchContentType($http_response_header);
+} else {
+
+ $this->contentType = null;
+}
+
+return $this->messageBody;
+}
+
+
+
+
+
+private function fetchContentType(array $headers)
+{
+foreach ($headers as $header) {
+if ($this->contentType = self::getContentTypeMatchInHeader($header)) {
+return true;
+}
+}
+
+return false;
+}
+
+
+
+
+
+protected static function getContentTypeMatchInHeader($header)
+{
+if (0 < preg_match("/Content-Type:(\V*)/ims", $header, $match)) {
+return trim($match[1]);
+}
+}
+}
+<?php
+
+namespace JsonSchema\Uri\Retrievers;
+
+use JsonSchema\Validator;
+use JsonSchema\Uri\Retrievers\UriRetrieverInterface;
+
+
+
+
+
+
+
+
+
+
+
+
+
+class PredefinedArray extends AbstractRetriever
+{
+
+
+
+
+private $schemas;
+
+
+
+
+
+
+
+public function __construct(array $schemas, $contentType = Validator::SCHEMA_MEDIA_TYPE)
+{
+$this->schemas = $schemas;
+$this->contentType = $contentType;
+}
+
+
+
+
+
+public function retrieve($uri)
+{
+if (!array_key_exists($uri, $this->schemas)) {
+throw new \JsonSchema\Exception\ResourceNotFoundException(sprintf(
+'The JSON schema "%s" was not found.',
+$uri
+));
+}
+
+return $this->schemas[$uri];
+}
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Uri\Retrievers;
+
+
+
+
+
+
+interface UriRetrieverInterface
+{
+
+
+
+
+
+
+public function retrieve($uri);
+
+
+
+
+
+public function getContentType();
+}<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Uri;
+
+use JsonSchema\Exception\UriResolverException;
+
+
+
+
+
+
+class UriResolver
+{
+
+
+
+
+
+
+public function parse($uri)
+{
+preg_match('|^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?|', $uri, $match);
+
+$components = array();
+if (5 < count($match)) {
+$components = array(
+'scheme' => $match[2],
+'authority' => $match[4],
+'path' => $match[5]
+);
+} 
+if (7 < count($match)) {
+$components['query'] = $match[7];
+}
+if (9 < count($match)) {
+$components['fragment'] = $match[9];
+}
+
+return $components;
+}
+
+
+
+
+
+
+
+public function generate(array $components)
+{
+$uri = $components['scheme'] . '://' 
+. $components['authority']
+. $components['path'];
+
+if (array_key_exists('query', $components)) {
+$uri .= $components['query'];
+}
+if (array_key_exists('fragment', $components)) {
+$uri .= '#' . $components['fragment'];
+}
+
+return $uri;
+}
+
+
+
+
+
+
+
+
+public function resolve($uri, $baseUri = null)
+{
+if ($uri == '') {
+return $baseUri;
+}
+
+$components = $this->parse($uri);
+$path = $components['path'];
+
+if (! empty($components['scheme'])) {
+return $uri;
+}
+$baseComponents = $this->parse($baseUri);
+$basePath = $baseComponents['path'];
+
+$baseComponents['path'] = self::combineRelativePathWithBasePath($path, $basePath);
+if (isset($components['fragment'])) {
+$baseComponents['fragment'] = $components['fragment'];
+}
+
+return $this->generate($baseComponents);
+}
+
+
+
+
+
+
+
+
+
+public static function combineRelativePathWithBasePath($relativePath, $basePath)
+{
+$relativePath = self::normalizePath($relativePath);
+if ($relativePath == '') {
+return $basePath;
+}
+if ($relativePath{0} == '/') {
+return $relativePath;
+}
+
+$basePathSegments = self::getPathSegments($basePath);
+
+preg_match('|^/?(\.\./(?:\./)*)*|', $relativePath, $match);
+$numLevelUp = strlen($match[0]) /3 + 1;
+if ($numLevelUp >= count($basePathSegments)) {
+throw new UriResolverException(sprintf("Unable to resolve URI '%s' from base '%s'", $relativePath, $basePath));
+}
+$basePathSegments = array_slice($basePathSegments, 0, -$numLevelUp);
+$path = preg_replace('|^/?(\.\./(\./)*)*|', '', $relativePath);
+
+return implode('/', $basePathSegments) . '/' . $path;
+}
+
+
+
+
+
+
+
+private static function normalizePath($path)
+{
+$path = preg_replace('|((?<!\.)\./)*|', '', $path);
+$path = preg_replace('|//|', '/', $path);
+
+return $path;
+}
+
+
+
+
+private static function getPathSegments($path) {
+
+return explode('/', $path);
+}
+
+
+
+
+
+public function isValid($uri)
+{
+$components = $this->parse($uri);
+
+return !empty($components);
+}
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema\Uri;
+
+use JsonSchema\Uri\Retrievers\FileGetContents;
+use JsonSchema\Uri\Retrievers\UriRetrieverInterface;
+use JsonSchema\Validator;
+use JsonSchema\Exception\InvalidSchemaMediaTypeException;
+use JsonSchema\Exception\JsonDecodingException;
+
+
+
+
+
+
+class UriRetriever
+{
+protected $uriRetriever = null;
+
+
+
+
+
+
+public function confirmMediaType($uriRetriever, $uri)
+{
+$contentType = $uriRetriever->getContentType();
+
+if (is_null($contentType)) {
+
+ return;
+}
+
+if (Validator::SCHEMA_MEDIA_TYPE === $contentType) {
+return;
+}
+
+if (substr($uri, 0, 23) == 'http://json-schema.org/') {
+
+ return true;
+}
+
+throw new InvalidSchemaMediaTypeException(sprintf('Media type %s expected', Validator::SCHEMA_MEDIA_TYPE));
+}
+
+
+
+
+
+
+
+
+
+public function getUriRetriever()
+{
+if (is_null($this->uriRetriever)) {
+$this->setUriRetriever(new FileGetContents);
+}
+
+return $this->uriRetriever;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public function resolvePointer($jsonSchema, $uri)
+{
+$resolver = new UriResolver();
+$parsed = $resolver->parse($uri);
+if (empty($parsed['fragment'])) {
+return $jsonSchema;
+}
+
+$path = explode('/', $parsed['fragment']);
+while ($path) {
+$pathElement = array_shift($path);
+if (! empty($pathElement)) {
+$pathElement = str_replace('~1', '/', $pathElement);
+$pathElement = str_replace('~0', '~', $pathElement);
+if (! empty($jsonSchema->$pathElement)) {
+$jsonSchema = $jsonSchema->$pathElement;
+} else {
+throw new \JsonSchema\Exception\ResourceNotFoundException(
+'Fragment "' . $parsed['fragment'] . '" not found'
+. ' in ' . $uri
+);
+}
+
+if (! is_object($jsonSchema)) {
+throw new \JsonSchema\Exception\ResourceNotFoundException(
+'Fragment part "' . $pathElement . '" is no object '
+. ' in ' . $uri
+);
+}
+}
+}
+
+return $jsonSchema;
+}
+
+
+
+
+
+
+
+
+public function retrieve($uri, $baseUri = null)
+{
+$resolver = new UriResolver();
+$resolvedUri = $fetchUri = $resolver->resolve($uri, $baseUri);
+
+
+ $arParts = $resolver->parse($resolvedUri);
+if (isset($arParts['fragment'])) {
+unset($arParts['fragment']);
+$fetchUri = $resolver->generate($arParts);
+}
+
+$jsonSchema = $this->loadSchema($fetchUri);
+
+
+ $jsonSchema = $this->resolvePointer($jsonSchema, $resolvedUri);
+$jsonSchema->id = $resolvedUri;
+
+return $jsonSchema;
+}
+
+
+
+
+
+
+
+
+
+protected function loadSchema($fetchUri)
+{
+if (isset($this->schemaCache[$fetchUri])) {
+return $this->schemaCache[$fetchUri];
+}
+
+$uriRetriever = $this->getUriRetriever();
+$contents = $this->uriRetriever->retrieve($fetchUri);
+$this->confirmMediaType($uriRetriever, $fetchUri);
+$jsonSchema = json_decode($contents);
+
+if (JSON_ERROR_NONE < $error = json_last_error()) {
+throw new JsonDecodingException($error);
+}
+
+$this->schemaCache[$fetchUri] = $jsonSchema;
+return $jsonSchema;
+}
+
+
+
+
+
+
+
+public function setUriRetriever(UriRetrieverInterface $uriRetriever)
+{
+$this->uriRetriever = $uriRetriever;
+
+return $this;
+}
+
+
+
+
+
+
+
+public function parse($uri)
+{
+preg_match('|^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?|', $uri, $match);
+
+$components = array();
+if (5 < count($match)) {
+$components = array(
+'scheme' => $match[2],
+'authority' => $match[4],
+'path' => $match[5]
+);
+}
+
+if (7 < count($match)) {
+$components['query'] = $match[7];
+}
+
+if (9 < count($match)) {
+$components['fragment'] = $match[9];
+}
+
+return $components;
+}
+
+
+
+
+
+
+
+public function generate(array $components)
+{
+$uri = $components['scheme'] . '://'
+. $components['authority']
+. $components['path'];
+
+if (array_key_exists('query', $components)) {
+$uri .= $components['query'];
+}
+
+if (array_key_exists('fragment', $components)) {
+$uri .= $components['fragment'];
+}
+
+return $uri;
+}
+
+
+
+
+
+
+
+
+public function resolve($uri, $baseUri = null)
+{
+$components = $this->parse($uri);
+$path = $components['path'];
+
+if ((array_key_exists('scheme', $components)) && ('http' === $components['scheme'])) {
+return $uri;
+}
+
+$baseComponents = $this->parse($baseUri);
+$basePath = $baseComponents['path'];
+
+$baseComponents['path'] = self::combineRelativePathWithBasePath($path, $basePath);
+
+return $this->generate($baseComponents);
+}
+
+
+
+
+
+
+
+
+
+private static function combineRelativePathWithBasePath($relativePath, $basePath)
+{
+$relativePath = self::normalizePath($relativePath);
+$basePathSegments = self::getPathSegments($basePath);
+
+preg_match('|^/?(\.\./(?:\./)*)*|', $relativePath, $match);
+$numLevelUp = strlen($match[0]) /3 + 1;
+if ($numLevelUp >= count($basePathSegments)) {
+throw new \JsonSchema\Exception\UriResolverException(sprintf("Unable to resolve URI '%s' from base '%s'", $relativePath, $basePath));
+}
+
+$basePathSegments = array_slice($basePathSegments, 0, -$numLevelUp);
+$path = preg_replace('|^/?(\.\./(\./)*)*|', '', $relativePath);
+
+return implode('/', $basePathSegments) . '/' . $path;
+}
+
+
+
+
+
+
+
+private static function normalizePath($path)
+{
+$path = preg_replace('|((?<!\.)\./)*|', '', $path);
+$path = preg_replace('|//|', '/', $path);
+
+return $path;
+}
+
+
+
+
+private static function getPathSegments($path)
+{
+return explode('/', $path);
+}
+
+
+
+
+
+public function isValid($uri)
+{
+$components = $this->parse($uri);
+
+return !empty($components);
+}
+}
+<?php
+
+
+
+
+
+
+
+
+namespace JsonSchema;
+
+use JsonSchema\Constraints\SchemaConstraint;
+use JsonSchema\Constraints\Constraint;
+
+use JsonSchema\Exception\InvalidSchemaMediaTypeException;
+use JsonSchema\Exception\JsonDecodingException;
+
+use JsonSchema\Uri\Retrievers\UriRetrieverInterface;
+
+
+
+
+
+
+
+
+class Validator extends Constraint
+{
+const SCHEMA_MEDIA_TYPE = 'application/schema+json';
+
+
+
+
+
+
+
+
+public function check($value, $schema = null, $path = null, $i = null)
+{
+$validator = new SchemaConstraint($this->checkMode, $this->uriRetriever);
+$validator->check($value, $schema);
+
+$this->addErrors(array_unique($validator->getErrors(), SORT_REGULAR));
+}
+}
+<?php
+
+
+
+require_once __DIR__ . '/composer' . '/autoload_real.php';
+
+return ComposerAutoloaderInitComposerPhar1431355779::getLoader();
+<?php
+
+
+
+$vendorDir = dirname(dirname(__FILE__));
+$baseDir = dirname($vendorDir);
+
+return array(
+'Symfony\\Component\\Process\\' => array($vendorDir . '/symfony/process'),
+'Symfony\\Component\\Finder\\' => array($vendorDir . '/symfony/finder'),
+'Symfony\\Component\\Console\\' => array($vendorDir . '/symfony/console'),
+'JsonSchema' => array($vendorDir . '/justinrainbow/json-schema/src'),
+'Composer' => array($baseDir . '/src'),
+);
+<?php
+
+
+
+$vendorDir = dirname(dirname(__FILE__));
+$baseDir = dirname($vendorDir);
+
+return array(
+'Seld\\PharUtils\\' => array($vendorDir . '/seld/phar-utils/src'),
+'Seld\\JsonLint\\' => array($vendorDir . '/seld/jsonlint/src/Seld/JsonLint'),
+'Seld\\CliPrompt\\' => array($vendorDir . '/seld/cli-prompt/src'),
+);
+<?php
+
+
+
+$vendorDir = dirname(dirname(__FILE__));
+$baseDir = dirname($vendorDir);
+
+return array(
+);
+<?php
+
+
+
+class ComposerAutoloaderInitComposerPhar1431355779
+{
+private static $loader;
+
+public static function loadClassLoader($class)
+{
+if ('Composer\Autoload\ClassLoader' === $class) {
+require __DIR__ . '/ClassLoader.php';
+}
+}
+
+public static function getLoader()
+{
+if (null !== self::$loader) {
+return self::$loader;
+}
+
+spl_autoload_register(array('ComposerAutoloaderInitComposerPhar1431355779', 'loadClassLoader'), true, true);
+self::$loader = $loader = new \Composer\Autoload\ClassLoader();
+spl_autoload_unregister(array('ComposerAutoloaderInitComposerPhar1431355779', 'loadClassLoader'));
+
+$map = require __DIR__ . '/autoload_namespaces.php';
+foreach ($map as $namespace => $path) {
+$loader->set($namespace, $path);
+}
+
+$map = require __DIR__ . '/autoload_psr4.php';
+foreach ($map as $namespace => $path) {
+$loader->setPsr4($namespace, $path);
+}
+
+$classMap = require __DIR__ . '/autoload_classmap.php';
+if ($classMap) {
+$loader->addClassMap($classMap);
+}
+
+$loader->register(true);
+
+return $loader;
+}
+}
+
+function composerRequireComposerPhar1431355779($file)
+{
+require $file;
+}
+<?php
+
+
+
+$vendorDir = dirname(dirname(__FILE__));
+$baseDir = dirname($vendorDir);
+
+return array(
+$vendorDir . '/phpunit/php-text-template',
+$vendorDir . '/phpunit/php-timer',
+);
+<?php
+
+
+
+
+
+
+
+
+
+
+
+namespace Composer\Autoload;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ClassLoader
+{
+
+ private $prefixLengthsPsr4 = array();
+private $prefixDirsPsr4 = array();
+private $fallbackDirsPsr4 = array();
+
+
+ private $prefixesPsr0 = array();
+private $fallbackDirsPsr0 = array();
+
+private $useIncludePath = false;
+private $classMap = array();
+
+private $classMapAuthoritative = false;
+
+public function getPrefixes()
+{
+if (!empty($this->prefixesPsr0)) {
+return call_user_func_array('array_merge', $this->prefixesPsr0);
+}
+
+return array();
+}
+
+public function getPrefixesPsr4()
+{
+return $this->prefixDirsPsr4;
+}
+
+public function getFallbackDirs()
+{
+return $this->fallbackDirsPsr0;
+}
+
+public function getFallbackDirsPsr4()
+{
+return $this->fallbackDirsPsr4;
+}
+
+public function getClassMap()
+{
+return $this->classMap;
+}
+
+
+
+
+public function addClassMap(array $classMap)
+{
+if ($this->classMap) {
+$this->classMap = array_merge($this->classMap, $classMap);
+} else {
+$this->classMap = $classMap;
+}
+}
+
+
+
+
+
+
+
+
+
+public function add($prefix, $paths, $prepend = false)
+{
+if (!$prefix) {
+if ($prepend) {
+$this->fallbackDirsPsr0 = array_merge(
+(array) $paths,
+$this->fallbackDirsPsr0
+);
+} else {
+$this->fallbackDirsPsr0 = array_merge(
+$this->fallbackDirsPsr0,
+(array) $paths
+);
+}
+
+return;
+}
+
+$first = $prefix[0];
+if (!isset($this->prefixesPsr0[$first][$prefix])) {
+$this->prefixesPsr0[$first][$prefix] = (array) $paths;
+
+return;
+}
+if ($prepend) {
+$this->prefixesPsr0[$first][$prefix] = array_merge(
+(array) $paths,
+$this->prefixesPsr0[$first][$prefix]
+);
+} else {
+$this->prefixesPsr0[$first][$prefix] = array_merge(
+$this->prefixesPsr0[$first][$prefix],
+(array) $paths
+);
+}
+}
+
+
+
+
+
+
+
+
+
+
+
+public function addPsr4($prefix, $paths, $prepend = false)
+{
+if (!$prefix) {
+
+ if ($prepend) {
+$this->fallbackDirsPsr4 = array_merge(
+(array) $paths,
+$this->fallbackDirsPsr4
+);
+} else {
+$this->fallbackDirsPsr4 = array_merge(
+$this->fallbackDirsPsr4,
+(array) $paths
+);
+}
+} elseif (!isset($this->prefixDirsPsr4[$prefix])) {
+
+ $length = strlen($prefix);
+if ('\\' !== $prefix[$length - 1]) {
+throw new \InvalidArgumentException("A non-empty PSR-4 prefix must end with a namespace separator.");
+}
+$this->prefixLengthsPsr4[$prefix[0]][$prefix] = $length;
+$this->prefixDirsPsr4[$prefix] = (array) $paths;
+} elseif ($prepend) {
+
+ $this->prefixDirsPsr4[$prefix] = array_merge(
+(array) $paths,
+$this->prefixDirsPsr4[$prefix]
+);
+} else {
+
+ $this->prefixDirsPsr4[$prefix] = array_merge(
+$this->prefixDirsPsr4[$prefix],
+(array) $paths
+);
+}
+}
+
+
+
+
+
+
+
+
+public function set($prefix, $paths)
+{
+if (!$prefix) {
+$this->fallbackDirsPsr0 = (array) $paths;
+} else {
+$this->prefixesPsr0[$prefix[0]][$prefix] = (array) $paths;
+}
+}
+
+
+
+
+
+
+
+
+
+
+public function setPsr4($prefix, $paths)
+{
+if (!$prefix) {
+$this->fallbackDirsPsr4 = (array) $paths;
+} else {
+$length = strlen($prefix);
+if ('\\' !== $prefix[$length - 1]) {
+throw new \InvalidArgumentException("A non-empty PSR-4 prefix must end with a namespace separator.");
+}
+$this->prefixLengthsPsr4[$prefix[0]][$prefix] = $length;
+$this->prefixDirsPsr4[$prefix] = (array) $paths;
+}
+}
+
+
+
+
+
+
+public function setUseIncludePath($useIncludePath)
+{
+$this->useIncludePath = $useIncludePath;
+}
+
+
+
+
+
+
+
+public function getUseIncludePath()
+{
+return $this->useIncludePath;
+}
+
+
+
+
+
+
+
+public function setClassMapAuthoritative($classMapAuthoritative)
+{
+$this->classMapAuthoritative = $classMapAuthoritative;
+}
+
+
+
+
+
+
+public function isClassMapAuthoritative()
+{
+return $this->classMapAuthoritative;
+}
+
+
+
+
+
+
+public function register($prepend = false)
+{
+spl_autoload_register(array($this, 'loadClass'), true, $prepend);
+}
+
+
+
+
+public function unregister()
+{
+spl_autoload_unregister(array($this, 'loadClass'));
+}
+
+
+
+
+
+
+
+public function loadClass($class)
+{
+if ($file = $this->findFile($class)) {
+includeFile($file);
+
+return true;
+}
+}
+
+
+
+
+
+
+
+
+public function findFile($class)
+{
+
+ if ('\\' == $class[0]) {
+$class = substr($class, 1);
+}
+
+
+ if (isset($this->classMap[$class])) {
+return $this->classMap[$class];
+}
+if ($this->classMapAuthoritative) {
+return false;
+}
+
+$file = $this->findFileWithExtension($class, '.php');
+
+
+ if ($file === null && defined('HHVM_VERSION')) {
+$file = $this->findFileWithExtension($class, '.hh');
+}
+
+if ($file === null) {
+
+ return $this->classMap[$class] = false;
+}
+
+return $file;
+}
+
+private function findFileWithExtension($class, $ext)
+{
+
+ $logicalPathPsr4 = strtr($class, '\\', DIRECTORY_SEPARATOR) . $ext;
+
+$first = $class[0];
+if (isset($this->prefixLengthsPsr4[$first])) {
+foreach ($this->prefixLengthsPsr4[$first] as $prefix => $length) {
+if (0 === strpos($class, $prefix)) {
+foreach ($this->prefixDirsPsr4[$prefix] as $dir) {
+if (is_file($file = $dir . DIRECTORY_SEPARATOR . substr($logicalPathPsr4, $length))) {
+return $file;
+}
+}
+}
+}
+}
+
+
+ foreach ($this->fallbackDirsPsr4 as $dir) {
+if (is_file($file = $dir . DIRECTORY_SEPARATOR . $logicalPathPsr4)) {
+return $file;
+}
+}
+
+
+ if (false !== $pos = strrpos($class, '\\')) {
+
+ $logicalPathPsr0 = substr($logicalPathPsr4, 0, $pos + 1)
+. strtr(substr($logicalPathPsr4, $pos + 1), '_', DIRECTORY_SEPARATOR);
+} else {
+
+ $logicalPathPsr0 = strtr($class, '_', DIRECTORY_SEPARATOR) . $ext;
+}
+
+if (isset($this->prefixesPsr0[$first])) {
+foreach ($this->prefixesPsr0[$first] as $prefix => $dirs) {
+if (0 === strpos($class, $prefix)) {
+foreach ($dirs as $dir) {
+if (is_file($file = $dir . DIRECTORY_SEPARATOR . $logicalPathPsr0)) {
+return $file;
+}
+}
+}
+}
+}
+
+
+ foreach ($this->fallbackDirsPsr0 as $dir) {
+if (is_file($file = $dir . DIRECTORY_SEPARATOR . $logicalPathPsr0)) {
+return $file;
+}
+}
+
+
+ if ($this->useIncludePath && $file = stream_resolve_include_path($logicalPathPsr0)) {
+return $file;
+}
+}
+}
+
+
+
+
+
+
+function includeFile($file)
+{
+include $file;
+}
+<?php
+
+if (PHP_SAPI !== 'cli') {
+    echo 'Warning: Composer should be invoked via the CLI version of PHP, not the '.PHP_SAPI.' SAPI'.PHP_EOL;
+}
+
+require __DIR__.'/../src/bootstrap.php';
+
+use Composer\Console\Application;
+
+error_reporting(-1);
+
+if (function_exists('ini_set')) {
+    @ini_set('display_errors', 1);
+
+    $memoryInBytes = function ($value) {
+        $unit = strtolower(substr($value, -1, 1));
+        $value = (int) $value;
+        switch($unit) {
+            case 'g':
+                $value *= 1024;
+                // no break (cumulative multiplier)
+            case 'm':
+                $value *= 1024;
+                // no break (cumulative multiplier)
+            case 'k':
+                $value *= 1024;
+        }
+
+        return $value;
+    };
+
+    $memoryLimit = trim(ini_get('memory_limit'));
+    // Increase memory_limit if it is lower than 1GB
+    if ($memoryLimit != -1 && $memoryInBytes($memoryLimit) < 1024 * 1024 * 1024) {
+        @ini_set('memory_limit', '1G');
+    }
+    unset($memoryInBytes, $memoryLimit);
+}
+
+// run the command application
+$application = new Application();
+$application->run();
+
+Copyright (c) 2015 Nils Adermann, Jordi Boggiano
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished
+to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+º:ûçÁkˇ1L¡u ê«JpI   GBMB

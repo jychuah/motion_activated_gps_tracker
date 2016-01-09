@@ -1,0 +1,20 @@
+a:hover {
+    color: inherit !important;
+}
+a:active {
+    color: inherit !important;
+}
+html, body {
+    height: 100%;
+}
+.img_icon {
+    position: relative;
+    top: 1px;
+    height: 16px;
+    width: 16px;
+    float: right;
+}
+#tracker_settings_table img {
+  height: 24px;
+  width: 24px;
+}
