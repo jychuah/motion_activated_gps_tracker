@@ -12,7 +12,7 @@ I will be migrating the product to the Particle.io Electron development board on
 
 ### Software Components
 - [HTML](./html): Web interface for configuring and interacting with tracker
-- [api_endpoints](.html): API end points for tracker to register events
-- [avr_firmware](.html): AVR based firmware for tracker
+- [api_endpoints](./api_endpoints): API end points for tracker to register events
+- [avr_firmware](./avr_firmware): AVR based firmware for tracker
 
 Many thanks and acknowledgements to the engineers at [Adafruit](http://www.adafruit.com). Please support their business, as this project was based off of products and libraries made by their hard work.
