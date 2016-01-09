@@ -25,8 +25,9 @@ BSD license, all text above must be included in any redistribution
 /**************************************************************************************
 User specific settings
 ***************************************************************************************/
-#define		  APN					"fast.t-mobile.com"
-#define     UID					"d76db2b8-be35-477c-a428-2623d523fbfd"
+#define		  APN					"your_cellular_apn"
+#define     UID					"your_uid_from_the_website"
+#define HELPER_URL    "your_api_endpoint_url"
 
 
 /**************************************************************************************
@@ -57,7 +58,6 @@ Debugging pre-processor definitions
 #define	CHARGE_DETECT_PIN A0
 #define LED_OUTPUT_PIN 13
 #define BAUD_RATE 57600
-#define HELPER_URL		"http://webpersistent.com/motorbike-tracker/helper/post.php"
 
 
 // Event strings
