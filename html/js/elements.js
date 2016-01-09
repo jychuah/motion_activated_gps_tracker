@@ -1,3 +1,18 @@
+/**
+* elements.js
+*
+* js for Motorbike Tracker frontend. Change firebase_url to reflect your
+* Firebase URL.
+*/
+var firebase_url = "https://your-firebase.firebaseio.com";
+
+var ref = new Firebase(firebase_url);
+var currentSequence = null;
+var map;
+var events = { };
+var email = "";
+
+
 function sequenceClickHandler(event) {
     var target = event.target;
     while ($(target).attr('sequence_id') == undefined) {
@@ -411,11 +426,6 @@ var EventProcessors = {
 };
 
 
-var ref = new Firebase("https://motorbike-tracker.firebaseio.com");
-var currentSequence = null;
-var map;
-var events = { };
-var email = "";
 
 function login() {
     email = $("#usr_email").val();

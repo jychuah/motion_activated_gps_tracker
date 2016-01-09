@@ -18,17 +18,6 @@
         <script src="js/bootstrap-select.min.js"></script>
         <script src="js/elements.js"></script>
         <script>
-            /**
-Thanks:
-
-https://github.com/ifightcrime/bootstrap-growl
-http://getbootstrap.com/
-https://fezvrasta.github.io/bootstrap-material-design/
-adafruit
-https://silviomoreto.github.io/bootstrap-select/
-
-
-*/
 <?php
 require('vendor/autoload.php');
 use Firebase\Token\TokenException;
@@ -36,7 +25,8 @@ use Firebase\Token\TokenGenerator;
 
   if ($_GET['trip']) {
 
-    $secret = 'huYU7ZUD5e6AbAk1ML9MsMZekQZ6kbTCRBgv71yx';
+    // Enable anonymous authentication and put in your firebase secret
+    $secret = 'your_firebase_secret';
 
     $sequence = $_GET['trip'];
 
