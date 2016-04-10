@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script data-main="js/main" src="js/libs/require.js"></script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>LED Lighting Controller</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">Motorbike Tracker</a>
+            </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                        aria-haspopup="true" aria-expanded="false"><span id="sign_in_text">Sign in</span> <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#" role="button" data-toggle="modal" data-target="#loginModal"
+                                id="sign_in_button">Sign in</a>
+                            </li>
+                            <li>
+                                <a href="#" role="button" class="hidden" data-toggle="modal" data-target="#changePasswordModal"
+                                id="account_option_button">Change password</a>
+                            </li>
+                            <li role="separator" class="divider"></li>
+                            <li>
+                                <a href="#" role="button" data-toggle="modal" data-target="#createAccountModal"
+                                id="create_account_button">Create account</a>
+                            </li>
+                            <li>
+                                <a href="#" role="button" data-toggle="modal" data-target="#resetPasswordModal"
+                                id="reset_password_button">Reset password</a>
+                            </li>
+                            <li>
+                                <a href="#" role="button" class="hidden" id="sign_out_button" id="fb_logout">Sign out</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container-fluid -->
+    </nav>
+    <nav class="navbar navbar-default"></nav>
+  <div class="row">
+    <div class="col-md-4">
+      <div class="panel panel-default">
+        <div class="panel-footer">
+          <h4>Controller list</h4>
+        </div>
+        <div class="panel-body">
+          <p>Controller 1 - Cycle 1</p>
+          <p>Controller 2 - Cycle 1</p>
+          <p>Controller 3 - Cycle 2</p>
+          <p>Controller 4 - Override</p>
+        </div>
+        <div class="panel-footer">
+          <button type="button" class="btn btn-info" style="width: 100%" data-toggle="modal" data-target="#pb-devices-modal">+ Add a device</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <div class="panel panel-default">
+        <div class="panel-footer">
+          <h4>Controller 1</h4>
+        </div>
+        <div class="panel-body">
+          <div class="row">
+            <div class="col-md-8">
+              <p>Channel 1 value</p>
+              <p>Channel 2 value</p>
+              <p>Channel 3 value</p>
+              <p>Channel 4 value</p>
+              <p>Relay value</p>
+              <p>Current program</p>
+            </div>
+            <div class="col-md-4">
+              <h5>Additional details</h5>
+              <p>Last connected</p>
+              <p>Device ID</p>
+              <p>Hit this button for advanced configure</p>
+            </div>
+          </div>
+        </div>
+        <div class="panel-footer">
+          <h5>vvv View the current cycle vvv</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="pb-devices-modal" id="pb-devices-modal">
+</div>
+<div class="pb-login-modal" id="pb-login-modal">
+</div>
+
+<div id="loginModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Log in with your e-mail and password</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="fb_email">E-mail address</label>
+                    <input type="text" class="form-control" id="fb_email">
+                    <label for="fb_password">Password</label>
+                    <input type="password" class="form-control" id="fb_password">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="fb_login">Sign in</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="changePasswordModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Change password</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="currentpwd">Current password</label>
+                    <input type="password" class="form-control" id="currentpwd">
+                    <label for="setpwd">New password</label>
+                    <input type="password" class="form-control" id="setpwd">
+                    <label for="setpwdagain">New password again</label>
+                    <input type="password" class="form-control"
+                    id="setpwdagain">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="changePassword();">Change password</button>
+                <button type="button" class="btn btn-default"
+                data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="createAccountModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Create an account</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new_usr_email">E-mail address</label>
+                    <input type="text" class="form-control" id="new_usr_email">
+                    <label for="newpwd">Password</label>
+                    <input type="password" class="form-control" id="newpwd">
+                    <label for="pwdagain">Password again</label>
+                    <input type="password" class="form-control" id="pwdagain">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" onClick="createAccount()">Create account</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="resetPasswordModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Send yourself a password reset e-mail</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="usr_email">E-mail address</label>
+                    <input type="text" class="form-control" id="reset_email">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" onClick="sendResetEmail();">Send e-mail</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+  </body>
+</html>
