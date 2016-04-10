@@ -33,6 +33,11 @@ require.config({
       location: "packages/fb-changepw-modal",
       main: "fb-changepw-modal"
     },
+    {
+      name: "fbcreatemodal",
+      location: "packages/fb-create-modal",
+      main: "fb-create-modal"
+    },
   ]
 });
 

@@ -2,6 +2,7 @@ define(['jquery',
         'particlebase',
         'pbdevicesmodal', 'pbloginmodal',
         'fbloginmodal', 'fbchangepwmodal',
+        'fbcreatemodal',
         'firebase', 'bootstrap'], function($, ParticleBase, PBDevicesModal) {
   function App() {
       var Firebase = require('firebase');
@@ -62,6 +63,13 @@ define(['jquery',
               console.log("Firebase change password error: ", error);
             } else {
               console.log("Firebase changed password");
+            }
+          });
+          this.fbcreatemodal = new FBCreateModal(this.firebase, function(error, authData) {
+            if (error) {
+              console.log("Firebase create user error: ", error);
+            } else {
+              console.log("Firebase user created: ", authData);
             }
           });
           $("#fb_logout").click($.proxy(this.fb_logout, this));

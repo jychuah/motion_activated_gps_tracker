@@ -49,7 +49,7 @@
                             </li>
                             <li role="separator" class="divider"></li>
                             <li>
-                                <a href="#" role="button" data-toggle="modal" data-target="#createAccountModal"
+                                <a href="#" role="button" data-toggle="modal" data-target="#fb-create-modal"
                                 id="create_account_button">Create account</a>
                             </li>
                             <li>
@@ -120,32 +120,7 @@
 <div class="pb-login-modal" id="pb-login-modal"></div>
 <div class="fb-login-modal" id="fb-login-modal"></div>
 <div class="fb-changepw-modal" id="fb-changepw-modal"></div>
-
-<div id="createAccountModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-        <!-- Modal content-->
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Create an account</h4>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="new_usr_email">E-mail address</label>
-                    <input type="text" class="form-control" id="new_usr_email">
-                    <label for="newpwd">Password</label>
-                    <input type="password" class="form-control" id="newpwd">
-                    <label for="pwdagain">Password again</label>
-                    <input type="password" class="form-control" id="pwdagain">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-dismiss="modal" onClick="createAccount()">Create account</button>
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="fb-create-modal" id="fb-create-modal"></div>
 <div id="resetPasswordModal" class="modal fade" role="dialog">
     <div class="modal-dialog">
         <!-- Modal content-->
