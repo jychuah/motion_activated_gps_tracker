@@ -1,0 +1,27 @@
+<div class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Particle.io Login</h4>
+    </div>
+    <div class="modal-body">
+        <p>
+          This site requires you to login to your Particle.io account, in order to access any
+          Particle.io devices. Your login information will not be stored, but a non-expiring
+          access token will be created. This token will be stored. As long as this access token
+          is valid, you will not need to repeat this process. This token can also be removed
+          from this site.
+        </p>
+        <div class="form-group">
+            <label for="particle_email">Particle.io E-mail address</label>
+            <input type="text" class="form-control" id="particle_email">
+            <label for="particle_password">Particle.io Password</label>
+            <input type="password" class="form-control" id="particle_password">
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal" id="particle_login">Sign in</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal" id="particle_login_cancel">Cancel</button>
+    </div>
+  </div>
+</div>

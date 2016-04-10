@@ -1,0 +1,28 @@
+<div class="modal-dialog">
+    <!-- Modal content-->
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title">Create an account</h4>
+        </div>
+        <div class="modal-body">
+            <p>
+              This will create a user account on Firebase. It's separate from your
+              Particle.io user account, and it will be used to store Particle.io device data
+              specific to this app, including access keys to your Particle.io devices.
+            </p>
+            <div class="form-group">
+                <label for="fb_new_email">Firebase E-mail address</label>
+                <input type="text" class="form-control" id="fb_new_email">
+                <label for="fb_new_pwd">Firebase password</label>
+                <input type="password" class="form-control" id="fb_new_pwd">
+                <label for="fb_new_pwd_again">Firebase password again</label>
+                <input type="password" class="form-control" id="fb_new_pwd_again">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal" disabled=true id="fb_create">Create account</button>
+            <button type="button" class="btn btn-default" data-dismiss="modal" id="fb_create_cancel">Cancel</button>
+        </div>
+    </div>
+</div>
