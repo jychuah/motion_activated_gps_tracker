@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>LED Lighting Controller</title>
+    <title>Firebase/Particle.io Controller</title>
 
     <!-- Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -40,12 +40,12 @@
                         aria-haspopup="true" aria-expanded="false"><span id="sign_in_text">Sign in</span> <span class="caret"></span></a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a href="#" role="button" data-toggle="modal" data-target="#loginModal"
-                                id="sign_in_button">Sign in</a>
+                                <a href="#" role="button" data-toggle="modal" data-target="#fb-login-modal"
+                                id="fb-login-button">Sign in</a>
                             </li>
                             <li>
-                                <a href="#" role="button" class="hidden" data-toggle="modal" data-target="#changePasswordModal"
-                                id="account_option_button">Change password</a>
+                                <a href="#" role="button" data-toggle="modal" data-target="#fb-changepw-modal"
+                                id="fb-changepw-button">Change password</a>
                             </li>
                             <li role="separator" class="divider"></li>
                             <li>
@@ -57,7 +57,7 @@
                                 id="reset_password_button">Reset password</a>
                             </li>
                             <li>
-                                <a href="#" role="button" class="hidden" id="sign_out_button" id="fb_logout">Sign out</a>
+                                <a href="#" role="button" id="sign_out_button" id="fb_logout">Sign out</a>
                             </li>
                         </ul>
                     </li>
@@ -115,61 +115,12 @@
     </div>
   </div>
 </div>
-<div class="pb-devices-modal" id="pb-devices-modal">
-</div>
-<div class="pb-login-modal" id="pb-login-modal">
-</div>
 
-<div id="loginModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-        <!-- Modal content-->
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Log in with your e-mail and password</h4>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="fb_email">E-mail address</label>
-                    <input type="text" class="form-control" id="fb_email">
-                    <label for="fb_password">Password</label>
-                    <input type="password" class="form-control" id="fb_password">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-dismiss="modal" id="fb_login">Sign in</button>
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-            </div>
-        </div>
-    </div>
-</div>
-<div id="changePasswordModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-        <!-- Modal content-->
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Change password</h4>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="currentpwd">Current password</label>
-                    <input type="password" class="form-control" id="currentpwd">
-                    <label for="setpwd">New password</label>
-                    <input type="password" class="form-control" id="setpwd">
-                    <label for="setpwdagain">New password again</label>
-                    <input type="password" class="form-control"
-                    id="setpwdagain">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="changePassword();">Change password</button>
-                <button type="button" class="btn btn-default"
-                data-dismiss="modal">Cancel</button>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="pb-devices-modal" id="pb-devices-modal"></div>
+<div class="pb-login-modal" id="pb-login-modal"></div>
+<div class="fb-login-modal" id="fb-login-modal"></div>
+<div class="fb-changepw-modal" id="fb-changepw-modal"></div>
+
 <div id="createAccountModal" class="modal fade" role="dialog">
     <div class="modal-dialog">
         <!-- Modal content-->

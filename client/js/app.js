@@ -1,4 +1,8 @@
-define(['jquery', 'particlebase', 'pbdevicesmodal', 'pbloginmodal', 'firebase', 'bootstrap'], function($, ParticleBase, PBDevicesModal) {
+define(['jquery',
+        'particlebase',
+        'pbdevicesmodal', 'pbloginmodal',
+        'fbloginmodal', 'fbchangepwmodal',
+        'firebase', 'bootstrap'], function($, ParticleBase, PBDevicesModal) {
   function App() {
       var Firebase = require('firebase');
       this.firebase = new Firebase("https://lighting-controller.firebaseio.com");
@@ -8,19 +12,7 @@ define(['jquery', 'particlebase', 'pbdevicesmodal', 'pbloginmodal', 'firebase', 
   };
   App.prototype = {
       constructor: App,
-      fb_login : function() {
-        var fb_email = $("#fb_email").val();
-        var fb_password = $("#fb_password").val();
-        this.firebase.authWithPassword({
-          email: fb_email, password: fb_password
-        }, function(error, authData) {
-          if (error) {
-            console.log("Firebase login error", error);
-          } else {
-            console.log("Firebase login success", authData);
-          }
-        });
-      },
+
       accessTokenCallback : function(status) {
         console.log("Access token callback: ", status);
         var ref = this;
@@ -52,20 +44,26 @@ define(['jquery', 'particlebase', 'pbdevicesmodal', 'pbloginmodal', 'firebase', 
       fb_logout : function() {
         this.firebase.unauth();
       },
-      particle_login: function() {
-        console.log("Particle Login");
-        var username = $("#particle_email").val();
-        var password = $("#particle_password").val();
-        this.pb.bindAccessToken(username, password, function(status) {
-          console.log(status);
-        });
-      },
+
       initialize: function() {
           this.pbdevicesmodal = new PBDevicesModal(this.pb);
           this.pbloginmodal = new PBLoginModal(this.pb, function(status) {
             console.log("pb-login-modal callback: ", status);
           });
-          $("#fb_login").click($.proxy(this.fb_login, this));
+          this.fbloginmodal = new FBLoginModal(this.firebase, function(error, auth) {
+            if (error) {
+              console.log("Firebase login error: ", error);
+            } else {
+              console.log("Firebase login auth: ", auth);
+            }
+          });
+          this.fbchangepwmodal = new FBChangePwModal(this.firebase, function(error) {
+            if (error) {
+              console.log("Firebase change password error: ", error);
+            } else {
+              console.log("Firebase changed password");
+            }
+          });
           $("#fb_logout").click($.proxy(this.fb_logout, this));
 //          $("#particle_login").click($.proxy(this.particle_login, this));
       }

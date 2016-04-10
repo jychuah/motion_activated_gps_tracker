@@ -15,14 +15,24 @@ require.config({
   packages: [
     {
       name: "pbdevicesmodal",
-      location :  "libs/pb-devices-modal",
+      location :  "packages/pb-devices-modal",
       main: "pb-devices-modal"
     },
     {
       name: "pbloginmodal",
-      location: "libs/pb-login-modal",
+      location: "packages/pb-login-modal",
       main: "pb-login-modal"
-    }
+    },
+    {
+      name: "fbloginmodal",
+      location: "packages/fb-login-modal",
+      main: "fb-login-modal"
+    },
+    {
+      name: "fbchangepwmodal",
+      location: "packages/fb-changepw-modal",
+      main: "fb-changepw-modal"
+    },
   ]
 });
 
