@@ -38,6 +38,11 @@ require.config({
       location: "packages/fb-create-modal",
       main: "fb-create-modal"
     },
+    {
+      name: "fbresetmodal",
+      location: "packages/fb-reset-modal",
+      main: "fb-reset-modal"
+    },
   ]
 });
 

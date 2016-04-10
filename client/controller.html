@@ -53,7 +53,7 @@
                                 id="create_account_button">Create account</a>
                             </li>
                             <li>
-                                <a href="#" role="button" data-toggle="modal" data-target="#resetPasswordModal"
+                                <a href="#" role="button" data-toggle="modal" data-target="#fb-reset-modal"
                                 id="reset_password_button">Reset password</a>
                             </li>
                             <li>
@@ -121,27 +121,8 @@
 <div class="fb-login-modal" id="fb-login-modal"></div>
 <div class="fb-changepw-modal" id="fb-changepw-modal"></div>
 <div class="fb-create-modal" id="fb-create-modal"></div>
-<div id="resetPasswordModal" class="modal fade" role="dialog">
-    <div class="modal-dialog">
-        <!-- Modal content-->
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Send yourself a password reset e-mail</h4>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="usr_email">E-mail address</label>
-                    <input type="text" class="form-control" id="reset_email">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-dismiss="modal" onClick="sendResetEmail();">Send e-mail</button>
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="fb-reset-modal" id="fb-reset-modal"></div>
+
 
   </body>
 </html>
