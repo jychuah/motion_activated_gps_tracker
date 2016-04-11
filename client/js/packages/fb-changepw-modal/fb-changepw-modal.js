@@ -9,7 +9,6 @@ define('fbchangepwmodal',
 
     function validate() {
       $("#fb_changepw").prop('disabled', !(
-        $("#fb_currentemail").val() &&
         $("#fb_currentpwd").val() &&
         $("#fb_setpwd").val() &&
         $("#fb_setpwdagain").val() &&
@@ -19,7 +18,7 @@ define('fbchangepwmodal',
 
     function firebase_changepw() {
       go = true;
-      var fbemail = $("#fb_currentemail").val();
+      var fbemail = fb.getAuth().password.email;
       var oldpw = $("#fb_currentpwd").val();
       var newpw = $("#fb_setpwd").val();
       var newpwagain = $("#fb_setpwdagain").val();
@@ -40,7 +39,6 @@ define('fbchangepwmodal',
 
     function init() {
       this.$fbchangepwmodal.html(modalHtml);
-      $("#fb_currentemail").change(validate);
       $("#fb_currentpwd").change(validate);
       $("#fb_setpwd").change(validate);
       $("#fb_setpwdagain").change(validate);

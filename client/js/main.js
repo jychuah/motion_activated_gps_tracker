@@ -10,7 +10,8 @@ require.config({
       app: "app",
       "bootstrap" :  "libs/bootstrap.min",
       firebase : "libs/firebase",
-      text: "libs/text"
+      text: "libs/text",
+      bootstrapgrowl : "libs/jquery.bootstrap-growl.min"
   },
   packages: [
     {
@@ -43,6 +44,11 @@ require.config({
       location: "packages/fb-reset-modal",
       main: "fb-reset-modal"
     },
+    {
+      name: "fbaccountnavbar",
+      location: "packages/fb-account-navbar",
+      main: "fb-account-navbar"
+    }
   ]
 });
 

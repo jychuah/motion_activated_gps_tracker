@@ -1,8 +1,7 @@
 define(['jquery',
         'particlebase',
         'pbdevicesmodal', 'pbloginmodal',
-        'fbloginmodal', 'fbchangepwmodal',
-        'fbcreatemodal', 'fbresetmodal',
+        'fbaccountnavbar',
         'firebase', 'bootstrap'], function($, ParticleBase, PBDevicesModal) {
   function App() {
       var Firebase = require('firebase');
@@ -42,44 +41,14 @@ define(['jquery',
 //          alert("Login to particle");
         }
       },
-      fb_logout : function() {
-        this.firebase.unauth();
-      },
+
 
       initialize: function() {
           this.pbdevicesmodal = new PBDevicesModal(this.pb);
           this.pbloginmodal = new PBLoginModal(this.pb, function(status) {
             console.log("pb-login-modal callback: ", status);
           });
-          this.fbloginmodal = new FBLoginModal(this.firebase, function(error, auth) {
-            if (error) {
-              console.log("Firebase login error: ", error);
-            } else {
-              console.log("Firebase login auth: ", auth);
-            }
-          });
-          this.fbchangepwmodal = new FBChangePwModal(this.firebase, function(error) {
-            if (error) {
-              console.log("Firebase change password error: ", error);
-            } else {
-              console.log("Firebase changed password");
-            }
-          });
-          this.fbcreatemodal = new FBCreateModal(this.firebase, function(error, authData) {
-            if (error) {
-              console.log("Firebase create user error: ", error);
-            } else {
-              console.log("Firebase user created: ", authData);
-            }
-          });
-          this.fbresetmodal = new FBResetModal(this.firebase, function(error) {
-            if (error) {
-              console.log("Firebase user reset error: ", error);
-            } else {
-              console.log("Firebase user password reset requested.");
-            }
-          })
-          $("#fb_logout").click($.proxy(this.fb_logout, this));
+          this.fbaccountnavbar = new FBAccountNavbar(this.firebase);
 //          $("#particle_login").click($.proxy(this.particle_login, this));
       }
   };
