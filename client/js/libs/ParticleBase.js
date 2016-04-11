@@ -270,7 +270,8 @@ define([], function(require) {
     // If successful, the supplied Access Token Callback will be triggered
     // with status ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN
     this.bindAccessToken = function(particle_username, particle_password, callback) {
-      if (!sanityCheck(callback)) {
+      if (!firebaseLoggedIn()) {
+        callback(ParticleBase.ERROR_FIREBASE_NOT_LOGGED_IN);
         return false;
       }
       var xhr = buildXHR("POST", "/oauth/token");
