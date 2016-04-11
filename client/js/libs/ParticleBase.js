@@ -76,7 +76,7 @@ define([], function(require) {
         return false;
       }
       return true;
-    }
+    };
 
 
     function hasAccessToken() {
@@ -135,6 +135,31 @@ define([], function(require) {
           }
         });
     };
+
+    // Firebase API event adapaters for the user device list
+    this.onDevices = function(eventType, callback, cancelCallback, context) {
+      if (!sanityCheck()) {
+        return false;
+      }
+      this.firebase.child('ParticleBase/users/devices/')
+        .child(this.firebase.getAuth().uid).on(eventType, callback, cancelCallback, context);
+    }
+
+    this.offDevices = function(eventType, callback, cancelCallback, context) {
+      if (!sanityCheck()) {
+        return false;
+      }
+      this.firebase.child('ParticleBase/users/devices/')
+        .child(this.firebase.getAuth().uid).off(eventType, callback, cancelCallback, context);
+    }
+
+    this.onceDevices = function(eventType, callback, cancelCallback, context) {
+      if (!sanityCheck()) {
+        return false;
+      }
+      this.firebase.child('ParticleBase/users/devices/')
+        .child(this.firebase.getAuth().uid).once(eventType, callback, cancelCallback, context);
+    }
 
     // Lists devices accessible with this user's access token
     // callback first parameter will be passed null on success or
