@@ -17,7 +17,13 @@ define(['jquery',
         console.log("Access token callback: ", status);
         var ref = this;
         if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN) {
-          ref.pb.listDevices(function(status, data) {
+          ref.pb.listDevices(function(error, data) {
+            if (error) {
+              console.log("Couldn't retrieve devices");
+            } else {
+              
+            }
+            /*
             console.log("List devices status: ", status);
             console.log("Device list: ", data);
             for (var key in data) {
@@ -35,6 +41,7 @@ define(['jquery',
                 }
               });
             }
+            */
           });
         } else {
           $("#pb-login-modal").modal('show');

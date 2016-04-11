@@ -6,17 +6,14 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          Select a Particle.io device to connect:
-          <ul class="list-group">
-            <li class="list-group-item">P.io device 1</li>
-            <li class="list-group-item">P.io device 2</li>
-            <li class="list-group-item">P.io device 3</li>
-            <li class="list-group-item">P.io device 4</li>
+          Select a Particle.io device to connect. Disabled items have already been connected.
+          <ul class="list-group" id="device_list">
           </ul>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal" id="device_connect">Connect</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
       </div>
   </div>
 </div>
