@@ -48,6 +48,11 @@ require.config({
       name: "fbaccountdropdown",
       location: "packages/fb-account-dropdown",
       main: "fb-account-dropdown"
+    },
+    {
+      name: "pbdevicedropdown",
+      location: "packages/pb-device-dropdown",
+      main: "pb-device-dropdown"
     }
   ]
 });

@@ -2,6 +2,8 @@ define(['jquery',
         'particlebase',
         'pbdevicesmodal', 'pbloginmodal',
         'fbaccountdropdown',
+        'pbdevicedropdown',
+        'bootstrapgrowl',
         'firebase', 'bootstrap'], function($, ParticleBase, PBDevicesModal) {
   function App() {
       var Firebase = require('firebase');
@@ -14,48 +16,38 @@ define(['jquery',
       constructor: App,
 
       accessTokenCallback : function(status) {
-        console.log("Access token callback: ", status);
         var ref = this;
         if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN) {
           ref.pb.listDevices(function(error, data) {
             if (error) {
-              console.log("Couldn't retrieve devices");
             } else {
-
+              // populate device
+              ref.pbdevicedropdown.populate();
             }
-            /*
-            console.log("List devices status: ", status);
-            console.log("Device list: ", data);
-            for (var key in data) {
-              ref.pb.saveDevice(data[key], function(error) {
-                if (!error) {
-                  ref.pb.getSavedDevices(function(error, data) {
-                    if (!error) {
-                      console.log("Saved devices: ", data);
-                    } else {
-                      console.log("Error retrieving saved devices: ", error);
-                    }
-                  });
-                } else {
-                  console.log("Error saving device: ", error);
-                }
-              });
-            }
-            */
           });
         } else {
+          ref.pbdevicedropdown.init();
           $("#pb-login-modal").modal('show');
-//          alert("Login to particle");
         }
       },
-
 
       initialize: function() {
           this.pbdevicesmodal = new PBDevicesModal(this.pb);
           this.pbloginmodal = new PBLoginModal(this.pb, function(status) {
-            console.log("pb-login-modal callback: ", status);
+            if (status === ParticleBase.ERROR_CANCEL) {
+              $("#pb-login-modal").modal('show');
+            }
           });
           this.fbaccountdropdown = new FBAccountDropdown(this.firebase);
+          this.pbdevicedropdown = new PBDeviceDropdown(this.pb, function(device_id) {
+            console.log("Device selected: ", device_id);
+          });
+          this.firebase.onAuth($.proxy(function(authData) {
+            if (authData) {
+            } else {
+              this.pbdevicedropdown.init();
+            }
+          }, this));
 //          $("#particle_login").click($.proxy(this.particle_login, this));
       }
   };
