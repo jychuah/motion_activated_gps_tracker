@@ -45,9 +45,9 @@ require.config({
       main: "fb-reset-modal"
     },
     {
-      name: "fbaccountnavbar",
-      location: "packages/fb-account-navbar",
-      main: "fb-account-navbar"
+      name: "fbaccountdropdown",
+      location: "packages/fb-account-dropdown",
+      main: "fb-account-dropdown"
     }
   ]
 });

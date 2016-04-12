@@ -1,7 +1,7 @@
 define(['jquery',
         'particlebase',
         'pbdevicesmodal', 'pbloginmodal',
-        'fbaccountnavbar',
+        'fbaccountdropdown',
         'firebase', 'bootstrap'], function($, ParticleBase, PBDevicesModal) {
   function App() {
       var Firebase = require('firebase');
@@ -21,7 +21,7 @@ define(['jquery',
             if (error) {
               console.log("Couldn't retrieve devices");
             } else {
-              
+
             }
             /*
             console.log("List devices status: ", status);
@@ -55,7 +55,7 @@ define(['jquery',
           this.pbloginmodal = new PBLoginModal(this.pb, function(status) {
             console.log("pb-login-modal callback: ", status);
           });
-          this.fbaccountnavbar = new FBAccountNavbar(this.firebase);
+          this.fbaccountdropdown = new FBAccountDropdown(this.firebase);
 //          $("#particle_login").click($.proxy(this.particle_login, this));
       }
   };

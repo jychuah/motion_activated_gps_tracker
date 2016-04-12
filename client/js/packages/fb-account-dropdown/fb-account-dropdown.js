@@ -1,21 +1,21 @@
-define('fbaccountnavbar',
+define('fbaccountdropdown',
   ['jquery',
-    'text!fbaccountnavbar/html/fb-account-navbar.html',
+    'text!fbaccountdropdown/html/fb-account-dropdown.html',
     'firebase', 'bootstrap',
     'fbloginmodal', 'fbchangepwmodal',
     'fbcreatemodal', 'fbresetmodal',
     'bootstrapgrowl'],
-  function($, navbarHtml) {
-  FBAccountNavbar = function(firebase) {
+  function($, dropdownHtml) {
+  FBAccountDropdown = function(firebase) {
     var fb = firebase;
-    this.$fbaccountnavbar = $('.fb-account-navbar');
+    this.$fbaccountdropdown = $('.fb-account-dropdown');
 
     function fb_logout() {
       fb.unauth();
     }
 
     function init() {
-      this.$fbaccountnavbar.html(navbarHtml);
+      this.$fbaccountdropdown.html(dropdownHtml);
       this.fbloginmodal = new FBLoginModal(fb, function(error, auth) {
         if (error) {
           $.bootstrapGrowl("Couldn't log in", { type : 'warning' });
@@ -66,12 +66,12 @@ define('fbaccountnavbar',
       });
     }
 
-    $('.fb-account-navbar').addClass('collapse navbar-collapse')
+    $('.fb-account-dropdown').addClass('dropdown')
     init.apply(this);
   }
 
-  FBAccountNavbar.prototype = {
-    constructor: FBAccountNavbar,
+  FBAccountDropdown.prototype = {
+    constructor: FBAccountDropdown,
   }
-  return FBAccountNavbar;
+  return FBAccountDropdown;
 });
