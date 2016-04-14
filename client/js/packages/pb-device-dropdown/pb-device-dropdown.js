@@ -18,17 +18,20 @@ define('pbdevicedropdown',
       var id = $(source.target).attr('device_id');
       var device_name = $(source.target).html();
       $("#current_device").text(device_name);
-      cb(id);
+      if (cb) {
+        cb(id);
+      }
     }
 
     pb.addAccessTokenCallback(function(status) {
-      console.log("pb dropdown access token callback: ", status);
       if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN) {
-
+        populate();
+      } else {
+        init();
       }
     });
 
-    this.populate = function() {
+    function populate() {
       pb.getSavedDevices(function(error, data) {
         if (error) {
         } else {

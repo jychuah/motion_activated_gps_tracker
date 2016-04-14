@@ -9,29 +9,33 @@ define(['jquery',
       var Firebase = require('firebase');
       this.firebase = new Firebase("https://lighting-controller.firebaseio.com");
       this.pb = new ParticleBase(this.firebase);
-      this.pb.addAccessTokenCallback($.proxy(this.accessTokenCallback, this));
+      this.pb.addAccessTokenCallback($.proxy(this.accessTokenModalListener, this));
       $(document).ready(this.initialize.apply(this));
+
   };
   App.prototype = {
       constructor: App,
 
-      accessTokenCallback : function(status) {
-        console.log("main app access token callback: ", status);
+      accessTokenModalListener: function(status) {
         var ref = this;
-        /*
-        if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN) {
-          ref.pb.listDevices(function(error, data) {
-            if (error) {
-            } else {
-              // populate device
-              ref.pbdevicedropdown.populate();
-            }
-          });
-        } else {
-        //  ref.pbdevicedropdown.init();
+        if (status === ParticleBase.ERROR_PARTICLEBASE_INVALID_ACCESS_TOKEN) {
           $("#pb-login-modal").modal('show');
         }
-        */
+      },
+
+      deviceSelectListener: function(device_id) {
+        this.pb.getDeviceTreeFirebase().child(device_id).once('value', function(dataSnapshot) {
+          console.log(dataSnapshot.val());
+          var deviceInfo = dataSnapshot.val();
+          $("#device_name").html(deviceInfo.name);
+          var deviceDetails = "<table border=0>";
+          deviceDetails += "<tr><td>Device ID:&nbsp;&nbsp;</td><td>" + deviceInfo.id + "</td></tr>";
+          deviceDetails += "<tr><td>Connected:&nbsp;&nbsp;</td><td>" + (deviceInfo.connected ? "yes" : "no") + "</td></tr>";
+          deviceDetails += "<tr><td>Last heard:&nbsp;&nbsp;</td><td>" + deviceInfo.last_heard + "</td></tr>";
+          deviceDetails += "<tr><td>Status:&nbsp;&nbsp;</td><td>" + deviceInfo.status + "</td></tr>";
+          deviceDetails += "</table>";
+          $("#device_info").html(deviceDetails);
+        });
       },
 
       initialize: function() {
@@ -42,9 +46,7 @@ define(['jquery',
             }
           });
           this.fbaccountdropdown = new FBAccountDropdown(this.firebase);
-          this.pbdevicedropdown = new PBDeviceDropdown(this.pb, function(device_id) {
-            console.log("Device selected: ", device_id);
-          });
+          this.pbdevicedropdown = new PBDeviceDropdown(this.pb, $.proxy(this.deviceSelectListener, this));
       }
   };
   return App;

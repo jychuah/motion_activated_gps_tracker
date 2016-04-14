@@ -145,7 +145,7 @@ define([], function(require) {
     };
 
     // Firebase API event adapaters for the user device list
-    this.getDeviceFirebase = function() {
+    this.getDeviceTreeFirebase = function() {
       if (!sanityCheck()) {
         return false;
       }

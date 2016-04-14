@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script data-main="js/main" src="js/libs/require.js"></script>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
-    <title>LED Lighting Controller</title>
+    <title>Firebase/Particle.io Controller</title>
 
     <!-- Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -18,52 +19,63 @@
     <![endif]-->
   </head>
   <body>
-    <div class="container">
-  <div class="jumbotron">
-    <h1>LED Lighting Controller</h1>
-    <p>Control your LED aquarium lights over the web, with a WiFi enabled controller</p>
-  </div>
-  <div class="row">
-    <div class="col-sm-4">
-      <div class="panel panel-default">
-        <div class="panel-body">
-          <h3>Build it!</h3>
-          <p>Based on the Particle.io Photon IoT development board,
-            you can build your own 0-10v analog dimming controller based on our
-            open source plans and code. Minimal soldering skills required. No coding!</p>
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+          data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">ParticleBase Controller</a>
         </div>
-        <div class="panel-footer">
-          <a href="https://github.com/jychuah/led_controller">View our project on GitHub</a>
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li class="pb-device-dropdown"></li>
+            <li class="fb-account-dropdown"></li>
+          </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+      </div>
+      <!-- /.container-fluid -->
+    </nav>
+    <nav class="navbar navbar-default"></nav>
+    <div class="row container-fluid">
+      <div class="col-md-3">
+        <div class="panel panel-default">
+          <div class="panel-footer">
+            <h4 id="device_name"></h4>
+          </div>
+          <div class="panel-body" id="device_info">
+          </div>
+          <div class="panel-footer">
+          </div>
+        </div>
+      </div>
+      <div class="col-md-9">
+        <div class="panel panel-default">
+          <div class="panel-footer">
+            <h4></h4>
+          </div>
+          <div class="panel-body">
+          </div>
+          <div class="panel-footer">
+            <h4></h4>
+          </div>
         </div>
       </div>
     </div>
-    <div class="col-sm-4">
-      <div class="panel panel-default">
-        <div class="panel-body">
-          <h3>...or have it built.</h3>
-          <p>Send me the parts, a tip, and I'll manufacture it, configure it, test it,
-            and send it to you ready to go!</p>
-        </div>
-        <div class="panel-footer">
-          <a href="mailto:">Contact info coming</a>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-4">
-      <div class="panel panel-default">
-        <div class="panel-body">
-          <h3>Control it!</h3>
-          <p>Once your device has been built and configured for your WiFi connection,
-              you can enter our configuration site and create your own lighting cycles,
-              or share them with each other!</p>
-        </div>
-        <div class="panel-footer">
-          <a href="./controller.html">Go to the web controller</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+
+    <div class="pb-devices-modal" id="pb-devices-modal"></div>
+    <div class="pb-login-modal" id="pb-login-modal"></div>
+    <div class="fb-login-modal" id="fb-login-modal"></div>
+    <div class="fb-changepw-modal" id="fb-changepw-modal"></div>
+    <div class="fb-create-modal" id="fb-create-modal"></div>
+    <div class="fb-reset-modal" id="fb-reset-modal"></div>
 
   </body>
 </html>
