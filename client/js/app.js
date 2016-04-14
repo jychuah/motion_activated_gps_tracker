@@ -1,12 +1,14 @@
 define(['jquery',
+        'particle',
         'particlebase',
         'pbdevicesmodal', 'pbloginmodal',
         'fbaccountdropdown',
         'pbdevicedropdown',
         'bootstrapgrowl',
-        'firebase', 'bootstrap'], function($, ParticleBase, PBDevicesModal) {
+        'firebase', 'bootstrap'], function($, Particle, ParticleBase, PBDevicesModal) {
   function App() {
       var Firebase = require('firebase');
+      this.particle = new Particle();
       this.firebase = new Firebase("https://lighting-controller.firebaseio.com");
       this.pb = new ParticleBase(this.firebase);
       this.pb.addAccessTokenCallback($.proxy(this.accessTokenModalListener, this));
@@ -20,12 +22,11 @@ define(['jquery',
         var ref = this;
         if (status === ParticleBase.ERROR_PARTICLEBASE_INVALID_ACCESS_TOKEN) {
           $("#pb-login-modal").modal('show');
-        }
+        } 
       },
 
       deviceSelectListener: function(device_id) {
         this.pb.getDeviceTreeFirebase().child(device_id).once('value', function(dataSnapshot) {
-          console.log(dataSnapshot.val());
           var deviceInfo = dataSnapshot.val();
           $("#device_name").html(deviceInfo.name);
           var deviceDetails = "<table border=0>";
