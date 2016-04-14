@@ -5,37 +5,40 @@ define([], function(require) {
     if (firebaseRef == null) {
       throw "Firebase reference must not be null.";
     }
+    this.callbacks = new Array();
+    this.lastMessage = "";
     this.accessToken = null;
-    this.accessTokenCallback = null;
     this.firebase = firebaseRef;
     this.firebase.onAuth(function(auth) {
+      var ref = this;
       if (auth) {
-        var ref = this;
         var tokenChild = this.firebase.child('ParticleBase').child('users').child('tokens').child(auth.uid);
         tokenChild.on('value', function(dataSnapshot) {
           if (!dataSnapshot) {
-            if (ref.accessTokenCallback) {
-              ref.accessTokenCallback(ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN);
-            }
+            notifyCallbacks(ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN);
           } else if (dataSnapshot.exists()) {
             ref.accessToken = dataSnapshot.val();
-            if (ref.accessTokenCallback) {
-              ref.testToken(function(status) {
-                switch(status) {
-                  case null : ref.accessTokenCallback(ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN); break;
-                  default : ref.accessTokenCallback(status); break;
-                };
-              });
-            }
+            ref.testToken(function(status) {
+              switch(status) {
+                case null : notifyCallbacks(ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN); break;
+                default : notifyCallbacks(status); break;
+              };
+            });
           } else {
-            if (ref.accessTokenCallback) {
-              ref.accessTokenCallback(ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN);
-            }
+            notifyCallbacks(ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN);
           }
         });
+      } else {
+        notifyCallbacks(ParticleBase.ERROR_FIREBASE_NOT_LOGGED_IN);
       }
     }, this);
 
+    function notifyCallbacks(message) {
+      ref.lastMessage = message;
+      for (var i = 0; i < ref.callbacks.length; i++) {
+        ref.callbacks[i](message);
+      }
+    }
 
     function buildXHR(method, endpoint) {
       var xhr = new XMLHttpRequest();
@@ -57,7 +60,7 @@ define([], function(require) {
         case 400 : status = ParticleBase.ERROR_PARTICLE_INVALID_CREDENTIALS; break;
         case 401 : {
                       status = ParticleBase.ERROR_PARTICLEBASE_INVALID_ACCESS_TOKEN;
-                      if (this.accessTokenCallback) this.accessTokenCallback(ParticleBase.ERROR_PARTICLEBASE_INVALID_ACCESS_TOKEN);
+                      notifyCallbacks(ParticleBase.ERROR_PARTICLEBASE_INVALID_ACCESS_TOKEN);
                   };
                   break;
         case 500 : status = ParticleBase.ERROR_PARTICLE_SERVER_ERROR; break;
@@ -68,10 +71,12 @@ define([], function(require) {
 
     function sanityCheck(callback) {
       if (!firebaseLoggedIn()) {
+        notifyCallbacks(ParticleBase.ERROR_FIREBASE_NOT_LOGGED_IN);
         callback(ParticleBase.ERROR_FIREBASE_NOT_LOGGED_IN);
         return false;
       }
       if (!hasAccessToken()) {
+        notifyCallbacks(ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN);
         callback(ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN);
         return false;
       }
@@ -83,7 +88,7 @@ define([], function(require) {
       return ref.accessToken != null;
     };
 
-    // Sets an access token event callback which fires if an accessToken
+    // Adds an access token event callback which fires if an accessToken
     // is missing, invalid, or acquired.
     // callback will be triggered with
     // ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN or one of the following errors:
@@ -92,8 +97,11 @@ define([], function(require) {
     // ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN (upon logging in but not detecting an access token)
     // This callback could be used to collect a Particle.io
     // username and password, which can be passed to the bindAccessToken function
-    this.setAccessTokenCallback = function(callback) {
-      this.accessTokenCallback = callback;
+    this.addAccessTokenCallback = function(callback) {
+      this.callbacks.push(callback);
+      if (this.lastMessage && this.lastMessage.length > 0) {
+        notifyCallbacks(this.lastMessage);
+      }
     };
 
     // This function lists "saved" devices. (See saveDevice)
@@ -137,28 +145,11 @@ define([], function(require) {
     };
 
     // Firebase API event adapaters for the user device list
-    this.onDevices = function(eventType, callback, cancelCallback, context) {
+    this.getDeviceFirebase = function() {
       if (!sanityCheck()) {
         return false;
       }
-      this.firebase.child('ParticleBase/users/devices/')
-        .child(this.firebase.getAuth().uid).on(eventType, callback, cancelCallback, context);
-    }
-
-    this.offDevices = function(eventType, callback, cancelCallback, context) {
-      if (!sanityCheck()) {
-        return false;
-      }
-      this.firebase.child('ParticleBase/users/devices/')
-        .child(this.firebase.getAuth().uid).off(eventType, callback, cancelCallback, context);
-    }
-
-    this.onceDevices = function(eventType, callback, cancelCallback, context) {
-      if (!sanityCheck()) {
-        return false;
-      }
-      this.firebase.child('ParticleBase/users/devices/')
-        .child(this.firebase.getAuth().uid).once(eventType, callback, cancelCallback, context);
+      return this.firebase.child('ParticleBase/users/devices/').child(this.firebase.getAuth().uid);
     }
 
     // Lists devices accessible with this user's access token

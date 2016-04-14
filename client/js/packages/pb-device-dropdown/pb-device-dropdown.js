@@ -21,6 +21,13 @@ define('pbdevicedropdown',
       cb(id);
     }
 
+    pb.addAccessTokenCallback(function(status) {
+      console.log("pb dropdown access token callback: ", status);
+      if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN) {
+
+      }
+    });
+
     this.populate = function() {
       pb.getSavedDevices(function(error, data) {
         if (error) {

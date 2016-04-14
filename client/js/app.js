@@ -9,14 +9,16 @@ define(['jquery',
       var Firebase = require('firebase');
       this.firebase = new Firebase("https://lighting-controller.firebaseio.com");
       this.pb = new ParticleBase(this.firebase);
-      this.pb.setAccessTokenCallback($.proxy(this.accessTokenCallback, this));
+      this.pb.addAccessTokenCallback($.proxy(this.accessTokenCallback, this));
       $(document).ready(this.initialize.apply(this));
   };
   App.prototype = {
       constructor: App,
 
       accessTokenCallback : function(status) {
+        console.log("main app access token callback: ", status);
         var ref = this;
+        /*
         if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN) {
           ref.pb.listDevices(function(error, data) {
             if (error) {
@@ -26,9 +28,10 @@ define(['jquery',
             }
           });
         } else {
-          ref.pbdevicedropdown.init();
+        //  ref.pbdevicedropdown.init();
           $("#pb-login-modal").modal('show');
         }
+        */
       },
 
       initialize: function() {
@@ -42,13 +45,6 @@ define(['jquery',
           this.pbdevicedropdown = new PBDeviceDropdown(this.pb, function(device_id) {
             console.log("Device selected: ", device_id);
           });
-          this.firebase.onAuth($.proxy(function(authData) {
-            if (authData) {
-            } else {
-              this.pbdevicedropdown.init();
-            }
-          }, this));
-//          $("#particle_login").click($.proxy(this.particle_login, this));
       }
   };
   return App;
