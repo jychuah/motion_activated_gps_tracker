@@ -56,9 +56,9 @@ require.config({
       main: "pb-device-dropdown"
     },
     {
-      name: "pbcontrolpanel",
-      location: "packages/pb-control-panel",
-      main: "pb-control-panel"
+      name: "pbcloudpanel",
+      location: "packages/pb-cloud-panel",
+      main: "pb-cloud-panel"
     }
   ]
 });

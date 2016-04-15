@@ -4,7 +4,7 @@ define(['jquery',
         'pbdevicesmodal', 'pbloginmodal',
         'fbaccountdropdown',
         'pbdevicedropdown',
-        'pbcontrolpanel',
+        'pbcloudpanel',
         'bootstrapgrowl',
         'firebase', 'bootstrap'], function($, Particle, ParticleBase, PBDevicesModal) {
   function App() {
@@ -49,7 +49,7 @@ define(['jquery',
           });
           this.fbaccountdropdown = new FBAccountDropdown(this.firebase);
           this.pbdevicedropdown = new PBDeviceDropdown(this.pb, $.proxy(this.deviceSelectListener, this));
-          this.pbcontrolpanel = new PBControlPanel(this.pb, "");
+          this.pbcloudpanel = new PBCloudPanel(this.pb, "");
       }
   };
   return App;
