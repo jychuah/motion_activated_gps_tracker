@@ -22,7 +22,7 @@ define(['jquery',
         var ref = this;
         if (status === ParticleBase.ERROR_PARTICLEBASE_INVALID_ACCESS_TOKEN) {
           $("#pb-login-modal").modal('show');
-        } 
+        }
       },
 
       deviceSelectListener: function(device_id) {

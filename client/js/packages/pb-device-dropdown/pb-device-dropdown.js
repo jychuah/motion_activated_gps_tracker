@@ -9,7 +9,6 @@ define('pbdevicedropdown',
     var pb = particleBase;
     var cb = callback;
     this.$pbdevicedropdown = $('.pb-device-dropdown');
-
     function init() {
       this.$pbdevicedropdown.html(dropdownHtml);
     }
@@ -23,13 +22,14 @@ define('pbdevicedropdown',
       }
     }
 
-    pb.addAccessTokenCallback(function(status) {
-      if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN) {
-        populate();
-      } else {
-        init();
-      }
-    });
+    pb.addAccessTokenCallback(
+      $.proxy(function(status) {
+        if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN) {
+          populate.apply(this);;
+        } else {
+          init.apply(this);
+        }
+      }, this));
 
     function populate() {
       pb.getSavedDevices(function(error, data) {
