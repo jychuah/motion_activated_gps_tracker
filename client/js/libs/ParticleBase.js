@@ -29,6 +29,7 @@ define([], function(require) {
           }
         });
       } else {
+        this.accessToken = null;
         notifyCallbacks(ParticleBase.ERROR_FIREBASE_NOT_LOGGED_IN);
       }
     }, this);
