@@ -1,0 +1,55 @@
+<div class="panel-footer">
+  <h4 pb-control-panel="device_name"></h4>
+</div>
+<div class="panel-body">
+  <div class="form-group">
+    <table border="0">
+      <tr>
+        <td colspan="2"><h4>Read a device variable</h4></td>
+      </tr>
+      <tr>
+        <td><label for="pb-control-panel-variable">Variable name&nbsp;&nbsp;</label></td>
+        <td><input type=text width="100%" id="pb-control-panel-variable"></input></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td align="right"><button type="button" class="btn btn-primary" data-dismiss="modal" pb-control-panel="get_variable_button">Get Variable</button></td>
+      </tr>
+
+      <tr>
+        <td colspan="2"><h4>Call a device function</h4></td>
+      </tr>
+      <tr>
+        <td><label for="pb-control-panel-function">Function name&nbsp;&nbsp;</label></td>
+        <td><input type=text id="pb-control-panel-function"></input></td>
+      </tr>
+      <tr>
+        <td><label for="pb-control-panel-function-param">Function parameter&nbsp;&nbsp;</label></td>
+        <td><input type=text id="pb-control-panel-function-param"></input></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td align="right"><button type="button" class="btn btn-primary" data-dismiss="modal" pb-control-panel="call_function_button">Call Function</button></td>
+      </tr>
+
+      <tr>
+        <td colspan="2"><h4>Publish an event</h4></td>
+      </tr>
+      <tr>
+        <td><label for="pb-control-panel-event">Event name&nbsp;&nbsp;</label></td>
+        <td><input type=text id="pb-control-panel-event"></input></td>
+      </tr>
+      <tr>
+        <td><label for="pb-control-panel-event-data">Event data&nbsp;&nbsp;</label></td>
+        <td><input type=text id="pb-control-panel-event-data"></input></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td align="right"><button type="button" class="btn btn-primary" data-dismiss="modal" pb-control-panel="call_function_button">Publish Event</button></td>
+      </tr>
+    </table>
+  </div>
+</div>
+<div class="panel-footer">
+  <h4></h4>
+</div>
