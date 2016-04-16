@@ -4,7 +4,7 @@ define(['jquery',
         'pbdevicesmodal', 'pbloginmodal',
         'fbaccountdropdown',
         'pbdevicedropdown',
-        'pbcloudpanel',
+        'particlevariablepanel',
         'bootstrapgrowl',
         'firebase', 'bootstrap'], function($, Particle, ParticleBase, PBDevicesModal) {
   function App() {
@@ -38,6 +38,7 @@ define(['jquery',
           deviceDetails += "</table>";
           $("#device_info").html(deviceDetails);
         });
+        this.particlevariablepanel = new ParticleVariablePanel(device_id, this.pb.accessToken);
       },
 
       initialize: function() {
@@ -49,7 +50,6 @@ define(['jquery',
           });
           this.fbaccountdropdown = new FBAccountDropdown(this.firebase);
           this.pbdevicedropdown = new PBDeviceDropdown(this.pb, $.proxy(this.deviceSelectListener, this));
-          this.pbcloudpanel = new PBCloudPanel(this.pb, "");
       }
   };
   return App;

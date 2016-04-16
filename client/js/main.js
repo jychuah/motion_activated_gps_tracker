@@ -56,9 +56,9 @@ require.config({
       main: "pb-device-dropdown"
     },
     {
-      name: "pbcloudpanel",
-      location: "packages/pb-cloud-panel",
-      main: "pb-cloud-panel"
+      name: "particlevariablepanel",
+      location: "packages/particle-variable-panel",
+      main: "particle-variable-panel"
     }
   ]
 });
