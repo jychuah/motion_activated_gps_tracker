@@ -33,7 +33,6 @@ define(['jquery',
           $("#device_name").html(deviceInfo.name);
           var deviceDetails = "<table border=0>";
           deviceDetails += "<tr><td>Device ID:&nbsp;&nbsp;</td><td>" + deviceInfo.id + "</td></tr>";
-          deviceDetails += "<tr><td>Connected:&nbsp;&nbsp;</td><td>" + (deviceInfo.connected ? "yes" : "no") + "</td></tr>";
           deviceDetails += "<tr><td>Last heard:&nbsp;&nbsp;</td><td>" + deviceInfo.last_heard + "</td></tr>";
           deviceDetails += "<tr><td>Status:&nbsp;&nbsp;</td><td>" + deviceInfo.status + "</td></tr>";
           deviceDetails += "</table>";
