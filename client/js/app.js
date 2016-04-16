@@ -38,6 +38,10 @@ define(['jquery',
           deviceDetails += "</table>";
           $("#device_info").html(deviceDetails);
         });
+        if (this.particlevariablepanel) {
+          $(this.particlevariablepanel).html("");
+          this.particlevariablepanel = null;
+        }
         this.particlevariablepanel = new ParticleVariablePanel(device_id, this.pb.accessToken);
       },
 
