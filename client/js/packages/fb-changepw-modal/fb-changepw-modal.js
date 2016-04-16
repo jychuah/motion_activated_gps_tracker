@@ -1,5 +1,5 @@
 define('fbchangepwmodal',
-  ['jquery', 'text!fbchangepwmodal/html/fb-changepw-modal.html'],
+  ['jquery', 'text!./html/fb-changepw-modal.html'],
   function($, modalHtml) {
   FBChangePwModal = function(firebase, callback) {
     var fb = firebase;

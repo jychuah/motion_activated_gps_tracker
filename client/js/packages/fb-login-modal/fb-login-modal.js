@@ -1,5 +1,5 @@
 define('fbloginmodal',
-  ['jquery', 'text!fbloginmodal/html/fb-login-modal.html'],
+  ['jquery', 'text!./html/fb-login-modal.html'],
   function($, modalHtml) {
   FBLoginModal = function(firebase, callback) {
     var fb = firebase;

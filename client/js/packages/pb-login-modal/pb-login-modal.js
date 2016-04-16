@@ -1,5 +1,5 @@
 define('pbloginmodal',
-  ['jquery', 'text!pbloginmodal/html/pb-login-modal.html'],
+  ['jquery', 'text!./html/pb-login-modal.html'],
   function($, modalHtml) {
   PBLoginModal = function(particleBaseInstance, callback) {
     var pb = particleBaseInstance;

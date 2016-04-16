@@ -1,6 +1,6 @@
 define('fbaccountdropdown',
   ['jquery',
-    'text!fbaccountdropdown/html/fb-account-dropdown.html',
+    'text!./html/fb-account-dropdown.html',
     'firebase', 'bootstrap',
     'fbloginmodal', 'fbchangepwmodal',
     'fbcreatemodal', 'fbresetmodal',

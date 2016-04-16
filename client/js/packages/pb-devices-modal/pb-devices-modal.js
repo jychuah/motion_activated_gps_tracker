@@ -1,6 +1,6 @@
 define('pbdevicesmodal',
-  ['jquery', 'text!pbdevicesmodal/html/pb-devices-modal.html',
-    'text!pbdevicesmodal/html/pb-devices-item.html',
+  ['jquery', 'text!./html/pb-devices-modal.html',
+    'text!./html/pb-devices-item.html',
     './listgroup',
     'bootstrapgrowl'],
   function($, modalHtml, itemHtml) {

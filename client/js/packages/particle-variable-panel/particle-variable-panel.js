@@ -1,7 +1,7 @@
 define('particlevariablepanel',
   ['jquery', 'particle',
-    'text!particlevariablepanel/html/particle-variable-panel.html',
-    'text!particlevariablepanel/html/particle-variable-input-group.html',
+    'text!./html/particle-variable-panel.html',
+    'text!./html/particle-variable-input-group.html',
     'particlebase',
     'bootstrapgrowl'],
   function($, Particle, panelHtml, inputGroupHtml) {

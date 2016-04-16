@@ -1,7 +1,7 @@
 define('pbdevicedropdown',
   ['jquery',
-    'text!pbdevicedropdown/html/pb-device-dropdown.html',
-    'text!pbdevicedropdown/html/pb-device-li.html',
+    'text!./html/pb-device-dropdown.html',
+    'text!./html/pb-device-li.html',
     'particlebase',
     'bootstrapgrowl'],
   function($, dropdownHtml, liHtml) {

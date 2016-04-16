@@ -1,5 +1,5 @@
 define('fbcreatemodal',
-  ['jquery', 'text!fbcreatemodal/html/fb-create-modal.html'],
+  ['jquery', 'text!./html/fb-create-modal.html'],
   function($, modalHtml) {
   FBCreateModal = function(firebase, callback) {
     var fb = firebase;

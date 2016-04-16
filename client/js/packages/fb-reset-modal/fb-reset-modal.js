@@ -1,5 +1,5 @@
 define('fbresetmodal',
-  ['jquery', 'text!fbresetmodal/html/fb-reset-modal.html'],
+  ['jquery', 'text!./html/fb-reset-modal.html'],
   function($, modalHtml) {
   FBResetModal = function(firebase, callback) {
     var fb = firebase;
