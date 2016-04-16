@@ -59,6 +59,11 @@ require.config({
       name: "particlevariablepanel",
       location: "packages/particle-variable-panel",
       main: "particle-variable-panel"
+    },
+    {
+      name: "particlefunctionpanel",
+      location: "packages/particle-function-panel",
+      main: "particle-function-panel"
     }
   ]
 });

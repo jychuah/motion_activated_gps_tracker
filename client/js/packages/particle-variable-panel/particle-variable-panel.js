@@ -18,53 +18,64 @@ define('particlevariablepanel',
       particle.getVariable({ deviceId: id, name: varname, auth: token}).then(
         function(data) {
           value.val(data.body.result);
-          console.log("Variable: ", data.body.result);
         },
         function(error) {
-          console.log("Error: ", error);
+          $.bootstrapGrowl("Unable to refresh " + varname, { type : "warning"} );
         }
       );
     }
 
-    function init() {
-      this.$particlevariablepanel.html(panelHtml);
+    function probeDevice() {
+      clearPanel.apply(this);
       var devicesPr = particle.getDevice({ deviceId: id, auth: token});
       devicesPr.then(
         $.proxy(function(data) {
           if (data.body.variables) {
             var panel = this.$particlevariablepanel.find('[particle-variable-panel="variable_list"]');
             var variables = data.body.variables;
+            var keycount = 0;
             for (var key in variables) {
               var inputGroup = $($(inputGroupHtml));
               inputGroup.find('[particle-variable-input-group="variable"]').html(key);
               inputGroup.find('[particle-variable-input-group="refresh"]').click(refreshVariable);
               panel.append(inputGroup);
+              keycount++;
             }
+            this.$particlevariablepanel.find('[particle-variable-panel="status"]').html(keycount + " variables found");
+
+          } else {
+            this.$particlevariablepanel.find('[particle-variable-panel="status"]').html("No variables");
           }
         }, this),
         $.proxy(function(error) {
 
         }, this)
       );
-      /*
-      this.$particlevariablepanel.find('[particle-variable-panel="get_variable_button"]').click(
-        $.proxy(function(eventSource) {
-          particle.getVariable({ deviceId: id, name: 'countVar', auth: token }).then(function(data) {
-          console.log('Device variable retrieved successfully:', data);
-        }, function(err) {
-          console.log('An error occurred while getting attrs:', err);
-        });
-        }, this)
-      );
-      var devicesPr = particle.getDevice({ deviceId: id, auth: token});
-      devicesPr.then(function(data) {
-        console.log('Device attrs: ', data);
-      },
-      function(error) {
-        console.log('API failed: ', error);
-      });
-      */
+    }
 
+    function clearPanel() {
+      var panel = this.$particlevariablepanel.find('[particle-variable-panel="variable_list"]');
+      panel.html("");
+    }
+
+    function init() {
+      this.$particlevariablepanel.html(panelHtml);
+      probeDevice.apply(this);
+
+      var ref = this;
+      particle.getEventStream({ deviceId: id, auth: token }).then(
+        function(stream) {
+          stream.on('event', function(data) {
+            if (data.data === "online") {
+              probeDevice.apply(ref);
+            }
+            if (data.data === "offline") {
+              clearPanel.apply(ref);
+              ref.$particlevariablepanel.find('[particle-variable-panel="status"]').html("Offline");
+            }
+          });
+        }
+      );
     }
 
     $('.particle-variable-panel').addClass('panel panel-default');

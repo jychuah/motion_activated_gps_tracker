@@ -28,6 +28,7 @@ define('pbdevicedropdown',
           populate.apply(this);;
         } else {
           init.apply(this);
+          cb(null);
         }
       }, this));
 
