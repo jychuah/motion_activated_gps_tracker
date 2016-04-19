@@ -42,7 +42,7 @@ define('particlefunctionpanel',
               panel.append(inputGroup);
             }
           } else {
-            this.$particlevariablepanel.find('[particle-variable-panel="status"]').html("No functions");
+            this.$particlefunctionpanel.find('[particle-function-panel="status"]').html("No functions");
           }
         }, this),
         $.proxy(function(error) {

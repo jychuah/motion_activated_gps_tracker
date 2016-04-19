@@ -278,7 +278,6 @@ define([], function(require) {
       return true;
     };
 
-
     // callback will be passed null on success, or one of the following statuses:
     // ParticleBase.ERROR_FIREBASE_NOT_LOGGED_IN
     // ParticleBase.ERROR_PARTICLE_UNREACHABLE
