@@ -1,0 +1,24 @@
+<div class="modal-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Particle.io Login</h4>
+    </div>
+    <div class="modal-body">
+        <p>
+          This site requires you to login to your Particle.io account, in order to access any
+          Particle.io devices. You will only need to do this once.
+        </p>
+        <div class="form-group">
+            <label for="particle_email">Particle.io E-mail address</label>
+            <input type="text" class="form-control" particle-login-modal="email">
+            <label for="particle_password">Particle.io Password</label>
+            <input type="password" class="form-control" particle-login-modal="password">
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal" particle-login-modal="login">Sign in</button>
+        <button type="button" class="btn btn-default" data-dismiss="modal" particle-login-modal="cancel">Cancel</button>
+    </div>
+  </div>
+</div>
