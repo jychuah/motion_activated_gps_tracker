@@ -2,6 +2,7 @@ define(['jquery',
         'particle',
         'particlebase',
         'particleaccesstokenmodal',
+        'pbdevicedropdown',
         'bootstrapgrowl',
         'bootstrap'], function($, Particle) {
   function App() {
@@ -21,6 +22,11 @@ define(['jquery',
           status === ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN) {
           //  console.log("access token error");
           $("#particle-accesstoken-modal").modal('show');
+          $("#particle-accesstoken-modal").removeClass('hidden');
+          $("#pbdevicedropdown").removeClass('hidden');
+        } else {
+          $("#particleConnectLink").addClass('hidden');
+          $("#pbdevicedropdown").removeClass('hidden');
         }
       },
 
@@ -74,6 +80,18 @@ define(['jquery',
         $("#logoutLink").click(this.firebaseLogout);
         var ref = this;
 
+        firebase.auth().onAuthStateChanged(function(user) {
+          if (user) {
+            $("#loginLink").addClass('hidden');
+            $("#logoutLink").removeClass('hidden');
+          } else {
+            $("#loginLink").removeClass('hidden');
+            $("#logoutLink").addClass('hidden');
+            $("#pbdevicedropdown").addClass('hidden');
+            $("#particleConnectLink").addClass('hidden');
+          }
+        });
+
         this.pb.addCallback(this.pbLoginCallback);
         this.particleaccesstokenmodal = new ParticleAccessTokenModal(function(result) {
           if (result) {
@@ -83,6 +101,7 @@ define(['jquery',
             $.bootstrapGrowl("Couldn't log in to Particle.io", { type : "warning" });
           }
         });
+        this.pbdevicedropdown = new PBDeviceDropdown(this.pb, $.proxy(this.deviceSelectListener, this));
         /*
           this.pbdevicesmodal = new PBDevicesModal(this.pb);
           this.pbloginmodal = new PBLoginModal(this.pb, function(status) {

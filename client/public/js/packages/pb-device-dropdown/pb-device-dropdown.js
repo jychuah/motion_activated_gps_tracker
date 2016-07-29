@@ -21,7 +21,7 @@ define('pbdevicedropdown',
         cb(id);
       }
     }
-
+/*
     pb.addAccessTokenCallback(
       $.proxy(function(status) {
         if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN) {
@@ -31,8 +31,9 @@ define('pbdevicedropdown',
           cb(null);
         }
       }, this));
-
+*/
     function populate() {
+      /*
       pb.getSavedDevices(function(error, data) {
         if (error) {
         } else {
@@ -53,6 +54,7 @@ define('pbdevicedropdown',
           }
         }
       });
+      */
     }
 
     $('.pb-device-dropdown').addClass('dropdown');

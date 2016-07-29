@@ -18,6 +18,11 @@ require.config({
       name: "particleaccesstokenmodal",
       location: "packages/particle-accesstoken-modal",
       main: "particle-accesstoken-modal"
+    },
+    {
+      name: "pbdevicedropdown",
+      location: "packages/pb-device-dropdown",
+      main: "pb-device-dropdown"
     }
   ]
 });
