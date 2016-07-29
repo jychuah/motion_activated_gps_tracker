@@ -30,31 +30,8 @@ define(['jquery',
         }
       },
 
-      deviceSelectListener: function(device_id) {
-        this.pb.getDeviceTreeFirebase().child(device_id).once('value', function(dataSnapshot) {
-          var deviceInfo = dataSnapshot.val();
-          $("#device_name").html(deviceInfo.name);
-          var deviceDetails = "<table border=0>";
-          deviceDetails += "<tr><td>Device ID:&nbsp;&nbsp;</td><td>" + deviceInfo.id + "</td></tr>";
-          deviceDetails += "<tr><td>Last heard:&nbsp;&nbsp;</td><td>" + deviceInfo.last_heard + "</td></tr>";
-          deviceDetails += "<tr><td>Status:&nbsp;&nbsp;</td><td>" + deviceInfo.status + "</td></tr>";
-          deviceDetails += "</table>";
-          $("#device_info").html(deviceDetails);
-        });
-        if (this.particlevariablepanel) {
-          $(this.particlevariablepanel).html("");
-          this.particlevariablepanel = null;
-        }
-        if (device_id) {
-          this.particlevariablepanel = new ParticleVariablePanel(device_id, this.pb.accessToken);
-        }
-        if (this.particlefunctionpanel) {
-          $(this.particlefunctionpanel).html("");
-          this.particlefunctionpanel = null;
-        }
-        if (device_id) {
-          this.particlefunctionpanel = new ParticleFunctionPanel(device_id, this.pb.accessToken);
-        }
+      deviceSelectListener: function(device) {
+        console.log(device);
       },
 
       firebaseLogin : function() {

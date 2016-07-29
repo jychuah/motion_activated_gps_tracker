@@ -21,19 +21,19 @@ define('pbdevicesmodal',
         .child(selectedId).set(device)
         .then(function() {
           $.bootstrapGrowl(device.name + " was connected", { type : "success" });
-          cb(device);
+          if (cb) cb(device);
         });
     }
 
     function createDevice(device) {
       var existing = pb.getDevices();
       var obj = $($(itemHtml));
-      obj.addClass("disabled");
       obj.attr('data-device-id', device.id);
       obj.find('[data-device-li="device_name"]').html(device.name);
       obj.find('[data-device-li="device_id"]').html(device.id);
       if (existing && device.id in existing) {
         obj.find('[data-device-li="added"]').removeClass('hidden');
+        obj.addClass("disabled");
       }
       return obj;
     }
@@ -43,7 +43,7 @@ define('pbdevicesmodal',
       var token = pb.getAccessToken();
       if (!token) {
         // console.log("No access token!");
-        cb(null);
+        if (cb) cb(null);
         return false;
       }
       retrieved = { };
