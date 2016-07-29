@@ -15,9 +15,9 @@ require.config({
   },
   packages: [
     {
-      name: "particleloginmodal",
-      location: "packages/particle-login-modal",
-      main: "particle-login-modal"
+      name: "particleaccesstokenmodal",
+      location: "packages/particle-accesstoken-modal",
+      main: "particle-accesstoken-modal"
     }
   ]
 });

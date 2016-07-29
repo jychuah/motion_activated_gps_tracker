@@ -16,7 +16,11 @@ define(['particle'], function(Particle) {
       } else {
         ref.profile = dataSnapshot.val();
         ref.testToken(function(status) {
-          console.log(status);
+          if (status) {
+            notifyCallbacks(ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN);
+          } else {
+            notifyCallbacks(ParticleBase.ERROR_PARTICLEBASE_INVALID_ACCESS_TOKEN);
+          }
         });
       }
     }

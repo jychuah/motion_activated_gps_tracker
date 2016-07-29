@@ -1,7 +1,7 @@
 define(['jquery',
         'particle',
         'particlebase',
-        'particleloginmodal',
+        'particleaccesstokenmodal',
         'bootstrapgrowl',
         'bootstrap'], function($, Particle) {
   function App() {
@@ -19,8 +19,8 @@ define(['jquery',
         var ref = this;
         if (status === ParticleBase.ERROR_PARTICLEBASE_INVALID_ACCESS_TOKEN ||
           status === ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN) {
-            console.log("access token error");
-          $("#particle-login-modal").modal('show');
+          //  console.log("access token error");
+          $("#particle-accesstoken-modal").modal('show');
         }
       },
 
@@ -75,9 +75,10 @@ define(['jquery',
         var ref = this;
 
         this.pb.addCallback(this.pbLoginCallback);
-        this.particleloginmodal = new ParticleLoginModal(function(result) {
+        this.particleaccesstokenmodal = new ParticleAccessTokenModal(function(result) {
           if (result) {
             ref.pb.saveAccessToken(result);
+            $.bootstrapGrowl("Successfully logged in to Particle.io", {type : "success"});
           } else {
             $.bootstrapGrowl("Couldn't log in to Particle.io", { type : "warning" });
           }
