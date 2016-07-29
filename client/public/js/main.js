@@ -11,7 +11,8 @@ require.config({
       text: "libs/text",
       particle: "libs/particle.min",
       particlebase: "libs/ParticleBase",
-      bootstrapgrowl : "libs/jquery.bootstrap-growl.min"
+      bootstrapgrowl : "libs/jquery.bootstrap-growl.min",
+      UI : "ui"
   },
   packages: [
     {

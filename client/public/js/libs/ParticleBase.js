@@ -57,6 +57,7 @@ define(['particle'], function(Particle) {
         // user logged out
         // console.log("logged out of firebase");
         ref.profile = null;
+        notifyCallbacks();
       }
     })
 
