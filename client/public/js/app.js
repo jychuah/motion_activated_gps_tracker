@@ -102,16 +102,6 @@ define(['jquery',
           }
         });
         this.pbdevicedropdown = new PBDeviceDropdown(this.pb, $.proxy(this.deviceSelectListener, this));
-        /*
-          this.pbdevicesmodal = new PBDevicesModal(this.pb);
-          this.pbloginmodal = new PBLoginModal(this.pb, function(status) {
-            if (status === ParticleBase.ERROR_CANCEL) {
-              $("#pb-login-modal").modal('show');
-            }
-          });
-          this.fbaccountdropdown = new FBAccountDropdown(this.firebase);
-          this.pbdevicedropdown = new PBDeviceDropdown(this.pb, $.proxy(this.deviceSelectListener, this));
-          */
       }
   };
   return App;

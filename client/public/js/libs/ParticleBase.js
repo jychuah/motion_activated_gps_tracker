@@ -12,6 +12,7 @@ define(['particle'], function(Particle) {
     function userChanged(dataSnapshot) {
       if (!dataSnapshot || !dataSnapshot.exists()) {
         // console.log("user has no profile");
+        ref.profile = null;
         notifyCallbacks(ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN);
       } else {
         ref.profile = dataSnapshot.val();
@@ -38,6 +39,7 @@ define(['particle'], function(Particle) {
         // user logged out
         // console.log("logged out of firebase");
         ref.user = null;
+        this.profile = null;
       }
     })
 
@@ -48,9 +50,13 @@ define(['particle'], function(Particle) {
       }
     }
 
-    function hasAccessToken() {
-      return ref.profile.token;
+    this.getAccessToken = function() {
+      return ref.profile ? (ref.profile.token ? ref.profile.token : null) : null;
     };
+
+    this.getDevices = function() {
+      return ref.profile.devices ? (ref.profile.devices ? ref.profile.devices : null) : null;
+    }
 
     // Add callback for events
     this.addCallback = function(callback) {
@@ -163,56 +169,6 @@ define(['particle'], function(Particle) {
       firebase.database().ref('/ParticleBase/users/').child(this.user.uid).child("token").set(token);
     }
 
-    // TODO: Make this function create a permanent access token and return it
-    // callback will be passed null on success, or one of the following statuses:
-    // ParticleBase.ERROR_FIREBASE_NOT_LOGGED_IN
-    // ParticleBase.ERROR_PARTICLE_UNREACHABLE
-    // ParticleBase.ERROR_FIREBASE_COULD_NOT_SET_PARTICLE_TOKEN
-    // ParticleBase.ERROR_PARTICLE_BAD_RESPONSE
-    // If successful, the supplied Access Token Callback will be triggered
-    // with status ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN
-    this.bindAccessToken = function(particle_username, particle_password, callback) {
-      if (!firebaseLoggedIn()) {
-        callback(ParticleBase.ERROR_FIREBASE_NOT_LOGGED_IN);
-        return false;
-      }
-      var xhr = buildXHR("POST", "/oauth/token");
-      xhr.setRequestHeader ("Authorization", "Basic " + btoa("particle:particle"));
-      var ref = this;
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState == 0 && xhr.status == 0) {
-          callback(ParticleBase.ERROR_PARTICLE_UNREACHABLE);
-          return false;
-        };
-        if (xhr.readyState == 4) {
-          var data = xhr.status == 200 ? JSON.parse(xhr.responseText) : null;
-          var status = getParticleXHRStatus(xhr.status);
-          if (status === null) {
-            if ("access_token" in data) {
-              var token = data.access_token;
-              ref.firebase.child('ParticleBase').child('users').child('tokens').child(ref.firebase.getAuth().uid).set(token, function(error) {
-                if (error) {
-                  callback(ParticleBase.ERROR_FIREBASE_COULD_NOT_SET_PARTICLE_TOKEN);
-                } else {
-                  callback(null);
-                }
-              });
-            } else {
-              callback(ParticleBase.ERROR_PARTICLE_BAD_RESPONSE);
-              return false;
-            }
-          } else {
-            callback(status);
-            return false;
-          }
-          return true;
-        }
-      };
-      xhr.send("grant_type=password&expires_in=0&username=" +
-          encodeURIComponent(particle_username) + "&password=" +
-          encodeURIComponent(particle_password));
-      return true;
-    };
   };
 
 
