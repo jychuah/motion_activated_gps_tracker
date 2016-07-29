@@ -21,7 +21,7 @@ define('pbdevicedropdown',
 
     pb.addCallback(
       function(profile) {
-        if (profile.token && !watching) {
+        if (profile && profile.token && !watching) {
           firebase.database().ref('ParticleBase/users')
             .child(profile.user.uid)
             .child('devices')

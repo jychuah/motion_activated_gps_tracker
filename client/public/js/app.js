@@ -16,26 +16,28 @@ define(['jquery',
       constructor: App,
 
       pbLoginCallback: function(profile) {
-        if (!profile.token) {
-          //  console.log("access token error");
-          $("#particle-accesstoken-modal").modal('show');
-          $("#particle-accesstoken-modal").removeClass('hidden');
-          $("#pbdevicedropdown").removeClass('hidden');
-        } else {
-          $("#particleConnectLink").addClass('hidden');
-          $("#pbdevicedropdown").removeClass('hidden');
+        if (profile) {
+          if (!profile.token) {
+            //  console.log("access token error");
+            $("#particle-accesstoken-modal").modal('show');
+            $("#particleConnectLink").removeClass('hidden');
+            $("#pbdevicedropdown").addClass('hidden');
+          } else {
+            $("#particleConnectLink").addClass('hidden');
+            $("#pbdevicedropdown").removeClass('hidden');
+            if (!profile.devices) {
+              $("#addDeviceLink").removeClass('hidden');
+              $("#pbdevicedropdown").addClass('hidden');
+            } else {
+              $("#addDeviceLink").addClass('hidden');
+              $("#pbdevicedropdown").removeClass('hidden');
+            }
+          }
         }
       },
 
       deviceSelectCallback: function(device) {
         console.log(device);
-        if (!device) {
-          $("#addDeviceLink").removeClass('hidden');
-          $("#pbdevicedropdown").addClass('hidden');
-        } else {
-          $("#addDeviceLink").addClass('hidden');
-          $("#pbdevicedropdown").removeClass('hidden');
-        }
       },
 
       firebaseLogin : function() {
@@ -60,18 +62,6 @@ define(['jquery',
         $("#loginLink").click(this.firebaseLogin);
         $("#logoutLink").click(this.firebaseLogout);
         var ref = this;
-
-        firebase.auth().onAuthStateChanged(function(user) {
-          if (user) {
-            $("#loginLink").addClass('hidden');
-            $("#logoutLink").removeClass('hidden');
-          } else {
-            $("#loginLink").removeClass('hidden');
-            $("#logoutLink").addClass('hidden');
-            $("#pbdevicedropdown").addClass('hidden');
-            $("#particleConnectLink").addClass('hidden');
-          }
-        });
 
         this.pb.addCallback(this.pbLoginCallback);
         this.particleaccesstokenmodal = new ParticleAccessTokenModal(function(result) {

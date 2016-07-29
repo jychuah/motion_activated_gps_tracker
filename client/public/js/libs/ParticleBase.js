@@ -29,7 +29,6 @@ define(['particle'], function(Particle) {
     function userChanged(dataSnapshot) {
       if (!dataSnapshot || !dataSnapshot.exists()) {
         // console.log("user has no profile");
-        ref.profile = null;
         notifyCallbacks();
       } else {
         var data = dataSnapshot.val();
@@ -88,7 +87,7 @@ define(['particle'], function(Particle) {
       if (!ref.profile.user) {
         throw "Not logged in to Firebase.";
       }
-      firebase.database().ref('/ParticleBase/users/').child(this.user.uid).child("token").set(token);
+      firebase.database().ref('/ParticleBase/users/').child(ref.profile.user.uid).child("token").set(token);
     }
 
   };
