@@ -58,12 +58,13 @@ define('pbdevicedropdown',
         pickNew = true;
       } else {
         for (var id in devices) {
-          if (!ref.$pbdevicedropdown.find('[device-id=" + id + "]').length) {
+          if (!ref.$pbdevicedropdown.find('[device-id="' + id + '"]').length) {
             var obj = createLi(devices[id]);
             ref.$pbdevicedropdown.find('[data-device-dropdown="dropdown"]').prepend(obj);
             if (!selected) {
               selected = id;
               setCurrent(ref.retrieved[id]);
+              if (cb) cb(ref.retrieved[id]);
             }
           }
         }
@@ -82,12 +83,12 @@ define('pbdevicedropdown',
         if (!ref.retrieved) {
           selected = null;
           setCurrent({ name : "Devices" });
-          cb(null);
+          if (cb) cb(null);
         } else {
           var newCurrent = ref.retrieved(ref.retrieved.keys[0]);
           selected = newCurrent.id;
           setCurrent(newCurrent);
-          cb(newCurrent);
+          if (cb) cb(newCurrent);
         }
       }
     }

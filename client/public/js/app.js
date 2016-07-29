@@ -9,7 +9,6 @@ define(['jquery',
       var ref = this;
       this.particle = new Particle();
       this.pb = new ParticleBase();
-//      this.pb.addAccessTokenCallback($.proxy(this.accessTokenModalListener, this));
       $(document).ready(this.initialize.apply(this));
 
   };
@@ -30,8 +29,15 @@ define(['jquery',
         }
       },
 
-      deviceSelectListener: function(device) {
+      deviceSelectCallback: function(device) {
         console.log(device);
+        if (!device) {
+          $("#addDeviceLink").removeClass('hidden');
+          $("#pbdevicedropdown").addClass('hidden');
+        } else {
+          $("#addDeviceLink").addClass('hidden');
+          $("#pbdevicedropdown").removeClass('hidden');
+        }
       },
 
       firebaseLogin : function() {
@@ -78,7 +84,7 @@ define(['jquery',
             $.bootstrapGrowl("Couldn't log in to Particle.io", { type : "warning" });
           }
         });
-        this.pbdevicedropdown = new PBDeviceDropdown(this.pb, $.proxy(this.deviceSelectListener, this));
+        this.pbdevicedropdown = new PBDeviceDropdown(this.pb, $.proxy(this.deviceSelectCallback, this));
       }
   };
   return App;
