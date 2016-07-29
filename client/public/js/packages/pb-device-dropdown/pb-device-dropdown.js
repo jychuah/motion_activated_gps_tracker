@@ -3,6 +3,7 @@ define('pbdevicedropdown',
     'text!./html/pb-device-dropdown.html',
     'text!./html/pb-device-li.html',
     'particlebase',
+    'pbdevicesmodal',
     'bootstrapgrowl'],
   function($, dropdownHtml, liHtml) {
   PBDeviceDropdown = function(particleBase, callback) {
@@ -11,6 +12,9 @@ define('pbdevicedropdown',
     this.$pbdevicedropdown = $('.pb-device-dropdown');
     function init() {
       this.$pbdevicedropdown.html(dropdownHtml);
+      this.pbdevicesmodal = new PBDevicesModal(pb, function(devices) {
+        console.log("Devices modal callback", devices);
+      });
     }
 
     function select_device(source) {

@@ -23,6 +23,11 @@ require.config({
       name: "pbdevicedropdown",
       location: "packages/pb-device-dropdown",
       main: "pb-device-dropdown"
+    },
+    {
+      name: "pbdevicesmodal",
+      location: "packages/pb-devices-modal",
+      main: "pb-devices-modal"
     }
   ]
 });
