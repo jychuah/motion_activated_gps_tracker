@@ -34,9 +34,18 @@ define(['particle'], function(Particle) {
         var data = dataSnapshot.val();
         ref.profile.devices = data.devices;
         ref.profile.token = data.token;
-        testToken(function(status) {
-          if (!status) {
+        testToken(function(data) {
+          if (!data) {
             ref.profile.token = null;
+          } else {
+            var devices = { };
+            for (var index in data.body) {
+              devices[data.body[index].id] = data.body[index];
+            }
+            firebase.database().ref('ParticleBase/users')
+              .child(ref.profile.user.uid)
+              .child('devices')
+              .set(devices);
           }
           notifyCallbacks();
         });
