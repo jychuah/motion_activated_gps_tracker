@@ -20,10 +20,10 @@ define('pbdevicedropdown',
     }
 
     pb.addCallback(
-      function(status) {
-        if (status === ParticleBase.SUCCESS_PARTICLEBASE_ACCESS_TOKEN && !watching) {
+      function(profile) {
+        if (profile.token && !watching) {
           firebase.database().ref('ParticleBase/users')
-            .child(firebase.auth().currentUser.uid)
+            .child(profile.user.uid)
             .child('devices')
             .on('value', populate);
         }

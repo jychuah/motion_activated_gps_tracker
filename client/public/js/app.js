@@ -15,10 +15,8 @@ define(['jquery',
   App.prototype = {
       constructor: App,
 
-      pbLoginCallback: function(status) {
-        var ref = this;
-        if (status === ParticleBase.ERROR_PARTICLEBASE_INVALID_ACCESS_TOKEN ||
-          status === ParticleBase.ERROR_PARTICLEBASE_NO_ACCESS_TOKEN) {
+      pbLoginCallback: function(profile) {
+        if (!profile.token) {
           //  console.log("access token error");
           $("#particle-accesstoken-modal").modal('show');
           $("#particle-accesstoken-modal").removeClass('hidden');
