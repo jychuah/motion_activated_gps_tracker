@@ -10,7 +10,7 @@ Config::Config() {
 
 void Config::begin() {
 	Serial.println("beginning config");
-    Particle.subscribe("hook-response/config_get", &Config::parseValue, this);
+    Particle.subscribe("hook-response/config_get", &Config::parseValue, this, MY_DEVICES);
     Particle.publish("config_get", PRIVATE);
 }
 
