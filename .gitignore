@@ -227,4 +227,4 @@ _Pvt_Extensions
 
 devwebhooks/*
 firmware.bin
-
+*.bin
