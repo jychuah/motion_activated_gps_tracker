@@ -31,7 +31,7 @@
     #include <SPI.h>
   #endif
 #endif
-#include <Adafruit_Sensor.h>
+#include "Adafruit_Sensor.h"
 
 /*=========================================================================
     I2C ADDRESS/BITS

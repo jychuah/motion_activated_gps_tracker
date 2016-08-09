@@ -1,0 +1,4 @@
+particle compile photon firmware --saveTo firmware.bin
+stty -f /dev/cu.usbmodemFA131 14400
+particle flash --usb firmware.bin
+particle serial monitor

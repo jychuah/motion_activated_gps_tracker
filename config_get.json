@@ -1,0 +1,6 @@
+{
+	"event" : "config_get",
+	"url" : "https://intense-oasis-60683.herokuapp.com/devices/{{PARTICLE_DEVICE_ID}}?device_id={{PARTICLE_DEVICE_ID}}&particle_token=MY_TOKEN",
+	"requestType" : "GET",
+	"mydevices" : true
+}

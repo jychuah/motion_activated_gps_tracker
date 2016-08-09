@@ -17,7 +17,7 @@ All text above must be included in any redistribution
     #include <SoftwareSerial.h>
   #endif
 #endif
-#include <Adafruit_GPS.h>
+#include "Adafruit_GPS.h"
 // how long are max NMEA lines to parse?
 #define MAXLINELENGTH 120
 
