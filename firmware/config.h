@@ -8,7 +8,7 @@ class Config {
         void begin(void);
 
     private:
-        void parseValue(const char *event, const char *data);
+        void parse_config_get(const char *event, const char *data);
         
 };
 
