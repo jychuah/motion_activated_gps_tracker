@@ -10,19 +10,24 @@ Config::Config() {
 
 void Config::begin() {
 	Serial.println("beginning config");
-	/*
+	
     Particle.subscribe("hook-response/config_get", &Config::parse_config_get, this, MY_DEVICES);
+    Particle.subscribe("child_changed", &Config::parse_child_changed, this, MY_DEVICES);
     Particle.publish("config_get", PRIVATE);
-    */
-    parse_config_get(NULL, NULL);
+    Particle.publish("config_changed", PRIVATE);
+}
+
+void Config::parse_child_changed(const char *event, const char *data) {
+    Serial.println("child_changed");
+    Serial.println(data);
 }
 
 void Config::parse_config_get(const char *event, const char *data) {
-	Serial.println("Callback");
-//	String d = String(data).trim();
+	Serial.println("config_get");
+	String d = String(data).trim();
 
 	// Test fixture
-	String d = String("{\"key1\":\"value1\",\"key2\":\"value2\"}");
+	// String d = String("{\"key1\":\"value1\",\"key2\":\"value2\"}");
 
 	// Strip beginning and ending curly braces
 	if (d.startsWith("{") && d.endsWith("}")) {

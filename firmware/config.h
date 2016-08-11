@@ -11,6 +11,7 @@ class Config {
 
     private:
         void parse_config_get(const char *event, const char *data);
+        void parse_child_changed(const char *event, const char *data);
         void parse_pair(String pair);
         
 };
