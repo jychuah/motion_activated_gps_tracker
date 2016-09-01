@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "ParticleBase" : {
+      "users" : {
+        "$user" : {
+          ".read" : "auth.uid == $user",
+          ".write" : "auth.uid == $user"
+        }
+      }
+    }
+  }
+}
