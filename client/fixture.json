@@ -1,0 +1,37 @@
+{
+    "tracks" : {
+        "track_id_0123" : {
+            "device" : "device_id_0123",
+            "name" : "My Track",
+            "user_id" : "user_id_0123",
+            "events" : {
+                "event_id" : {
+                    "type" : "fix | pwr | arm | bat | mov",
+                    "data" : "lat, lng"
+                }
+            }
+        }
+    },
+    "track_pw" : {
+        "track_id_0123" : {
+            "device" : "device_id_0123",
+            "user_id" : "user_id_0123",
+            "password" : "password"
+        }
+    },
+    "users" : {
+        "user_id_0123" : {
+            "tracks" : {
+                "track_id_0123" : "device_id_0123"
+            },
+            "devices" : {
+                "device_id_0123" : {
+                    "name" : "My device",
+                    "tracks" : {
+                        "track_id_0123" : "My track"
+                    }
+                }
+            }
+        }
+    }
+}
