@@ -13,6 +13,7 @@ class Config {
         void parse_config_get(const char *event, const char *data);
         void parse_child_changed(const char *event, const char *data);
         void parse_pair(String pair);
+        String strip_surrounding(String input, char startswith, char endswith);
         
 };
 

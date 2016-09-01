@@ -226,5 +226,5 @@ _Pvt_Extensions
 
 
 devwebhooks/*
-firmware.bin
+**/firmware.bin
 *.bin
