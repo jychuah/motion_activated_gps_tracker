@@ -1,5 +1,16 @@
 {
-  "rules": {
+  "rules" : {
+    "devices" : {
+        "$device_id" : {
+            ".read" : "auth.uid === $device_id"
+        }
+    },
+    "users" : {
+        "$user_id" : {
+            ".read" : "auth.uid === $user_id",
+            ".write" : "auth.uid === $user_id"
+        }
+    },
     "ParticleBase" : {
       "users" : {
         "$user" : {

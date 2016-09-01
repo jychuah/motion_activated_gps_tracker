@@ -1,4 +1,9 @@
 {
+    "devices" : {
+        "device_id_0123" : {
+            "user_id" : "user_id_0123"
+        }
+    },
     "tracks" : {
         "track_id_0123" : {
             "device" : "device_id_0123",
